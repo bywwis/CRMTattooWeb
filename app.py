@@ -15,11 +15,27 @@ db = SQLAlchemy(app)
 def create_tables():
     Base.metadata.create_all(db.engine)
 
-
+# ========== СТРАНИЦЫ ==========
 @app.route('/')
-def index():
-    return render_template('index.html')
+@app.route('/records')
+def records():
+    return render_template('records.html')
 
+@app.route('/clients')
+def clients():
+    return render_template('clients.html')
+
+@app.route('/expenses')
+def expenses():
+    return render_template('expenses.html')
+
+@app.route('/prices')
+def prices():
+    return render_template('prices.html')
+
+@app.route('/finance')
+def finance():
+    return render_template('finance.html')
 
 # ========== КЛИЕНТЫ ==========
 @app.route('/customers', methods=['GET', 'POST'])

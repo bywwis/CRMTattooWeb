@@ -1,0 +1,95 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Основные стили страницы */
+body {
+    font-family: 'Sofia Sans';
+    background-color: #EDD4C3;
+    line-height: 1.6;
+    color: #513728;
+}
+
+/* Стили для верхнего меню */
+.menu {
+    background-color: #C1A28E;
+    padding: 20px 0;
+}
+
+/* Контейнер для кнопок меню */
+.menu-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* Стили кнопок меню */
+.menu-button {
+    background: none;
+    border: none;
+    padding: 5px 5%;
+    cursor: pointer;
+    font-size: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    font-family: 'Pacifico';
+    color: #513728;
+    text-decoration: none;
+}
+
+/* Эффект при наведении на кнопку */
+.menu-button:hover {
+    transform: translateY(-2px);
+}
+
+/* Стили для активной кнопки */
+.menu-button.active {
+    color: #B12121;
+}
+
+/* Линия подчеркивания для активной кнопки */
+.menu-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 170px;
+    height: 7px;
+    background-color: #B12121;
+    border-radius: 5px;
+}
+
+/* Стили для заголовка страницы */
+.page-title {
+    text-align: center;
+    font-family: 'Pacifico';
+    font-size: 50px;
+    color: #513728;
+    margin: 10px 0 10px 0;
+    font-weight: normal;
+}
+
+/* Стили для кнопки Добавить */
+.add-button {
+    background-color: #C1A28E;
+    color: #B12121;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 25px;
+    display: block;
+    margin: 0 auto 0 5%;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    font-family: 'Sofia Sans';
+}
+
+.add-button:hover {
+    background-color: #B12121;
+    color: #EDD4C3;
+}
