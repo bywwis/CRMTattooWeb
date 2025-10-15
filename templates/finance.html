@@ -1,6 +1,59 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="content">
     <h1 class="page-title">Финансы</h1>
     <!-- Контент страницы финансы -->
+    <div class="filters">
+        <div class="filter-group">
+            <select class="filter-select">
+                <option value="january">Январь</option>
+                <option value="february">Февраль</option>
+                <option value="march">Март</option>
+                <option value="april">Апрель</option>
+                <option value="may">Май</option>
+                <option value="june">Июнь</option>
+                <option value="july">Июль</option>
+                <option value="august">Август</option>
+                <option value="september">Сентябрь</option>
+                <option value="october">Октябрь</option>
+                <option value="november">Ноябрь</option>
+                <option value="december">Декабрь</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <select class="filter-select">
+                <option value="day">День</option>
+                <option value="month">Месяц</option>
+                <option value="year">Год</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <select class="filter-select">
+                <option value="revenue">Выручка</option>
+                <option value="profit">Прибыль</option>
+                <option value="expenses">Расходы</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <select class="filter-select">
+                <option value="graph">График</option>
+                <option value="chart">Диаграмма</option>
+                <option value="histogram">Гистограмма</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<style>
+    .filters {
+    display: flex;
+    justify-content: flex-start;
+    gap: 20px;
+    margin-bottom: 30px;
+    padding: 20px;
+    }
+</style>
 {% endblock %}

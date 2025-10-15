@@ -93,3 +93,39 @@ body {
     background-color: #B12121;
     color: #EDD4C3;
 }
+
+/* Стили для фильтров по Датам */
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-select {
+    background-color: #C1A28E;
+    border: none;
+    padding: 3px 10px;
+    font-size: 25px;
+    color: #B12121;
+    font-weight: bold;
+    font-family: 'Sofia Sans';
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px;
+    appearance: none;
+}
+
+.filter-select:hover {
+    background-color: #B12121;
+    color: #EDD4C3;
+}
+
+.filter-select:focus {
+    outline: none;
+}
+
+.filter-select option {
+    background-color: #EDD4C3;
+    color: #4B3020;
+    padding: 10px;
+}
+
