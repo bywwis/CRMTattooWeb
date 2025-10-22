@@ -63,6 +63,7 @@ class Record(Base):
     id_customers: Mapped[int] = mapped_column(Integer, nullable=False)
     id_services: Mapped[int] = mapped_column(Integer, nullable=False)
     date: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime)
+    name: Mapped[Optional[str]] = mapped_column(String)
 
     customers: Mapped['Customers'] = relationship('Customers', back_populates='record')
     services: Mapped['Services'] = relationship('Services', back_populates='record')

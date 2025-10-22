@@ -15,7 +15,7 @@ db = SQLAlchemy(app)
 def create_tables():
     Base.metadata.create_all(db.engine)
 
-# ========== СТРАНИЦЫ ==========
+# Страницы
 @app.route('/')
 @app.route('/records')
 def records():
@@ -37,7 +37,7 @@ def prices():
 def finance():
     return render_template('finance.html')
 
-# ========== КЛИЕНТЫ ==========
+# Клиенты
 @app.route('/customers', methods=['GET', 'POST'])
 def handle_customers():
     if request.method == 'GET':
@@ -77,7 +77,7 @@ def get_customer(customer_id):
     return jsonify({'error': 'Клиент не найден'}), 404
 
 
-# ========== УСЛУГИ ==========
+# Услуги
 @app.route('/services', methods=['GET', 'POST'])
 def handle_services():
     if request.method == 'GET':
@@ -99,7 +99,7 @@ def handle_services():
         return jsonify({'message': 'Услуга добавлена', 'ID': new_service.ID}), 201
 
 
-# ========== МАТЕРИАЛЫ ==========
+# Материалы
 @app.route('/supplies', methods=['GET', 'POST'])
 def handle_supplies():
     if request.method == 'GET':
@@ -121,7 +121,50 @@ def handle_supplies():
         return jsonify({'message': 'Материал добавлен', 'ID': new_supply.ID}), 201
 
 
-# ========== ЗАПИСИ ==========
+# Записи
+# Получить одну запись по ID
+@app.route('/records/<int:record_id>', methods=['GET'])
+def get_record(record_id):
+    record = db.session.query(Record).filter(Record.ID == record_id).first()
+    if record:
+        return jsonify({
+            'ID': record.ID,
+            'id_customers': record.id_customers,
+            'id_services': record.id_services,
+            'date': record.date.isoformat() if record.date else None,
+            'name': record.name
+        })
+    return jsonify({'error': 'Запись не найдена'}), 404
+
+
+# Обновить запись
+@app.route('/records/<int:record_id>', methods=['PUT'])
+def update_record(record_id):
+    record = db.session.query(Record).filter(Record.ID == record_id).first()
+    if not record:
+        return jsonify({'error': 'Запись не найдена'}), 404
+
+    data = request.json
+    record.id_customers = data.get('id_customers', record.id_customers)
+    record.id_services = data.get('id_services', record.id_services)
+    record.date = data.get('date', record.date)
+    record.name = data.get('name', record.name)
+
+    db.session.commit()
+    return jsonify({'message': 'Запись обновлена'})
+
+
+# Удалить запись
+@app.route('/records/<int:record_id>', methods=['DELETE'])
+def delete_record(record_id):
+    record = db.session.query(Record).filter(Record.ID == record_id).first()
+    if not record:
+        return jsonify({'error': 'Запись не найдена'}), 404
+
+    db.session.delete(record)
+    db.session.commit()
+    return jsonify({'message': 'Запись удалена'})
+
 @app.route('/records', methods=['GET', 'POST'])
 def handle_records():
     if request.method == 'GET':
@@ -130,7 +173,8 @@ def handle_records():
             'ID': r.ID,
             'id_customers': r.id_customers,
             'id_services': r.id_services,
-            'date': r.date.isoformat() if r.date else None
+            'date': r.date.isoformat() if r.date else None,
+            'name': r.name  # Добавьте это поле
         } for r in records])
 
     elif request.method == 'POST':
@@ -138,14 +182,15 @@ def handle_records():
         new_record = Record(
             id_customers=data.get('id_customers'),
             id_services=data.get('id_services'),
-            date=data.get('date')
+            date=data.get('date'),
+            name=data.get('name')  # Добавьте это поле
         )
         db.session.add(new_record)
         db.session.commit()
         return jsonify({'message': 'Запись добавлена', 'ID': new_record.ID}), 201
 
 
-# ========== РАСХОДНИКИ ==========
+# Расходные материалы
 @app.route('/services_supplies', methods=['GET', 'POST'])
 def handle_services_supplies():
     if request.method == 'GET':
@@ -171,45 +216,48 @@ def handle_services_supplies():
         return jsonify({'message': 'Расход материала добавлен', 'ID': new_service_supply.ID}), 201
 
 
-# ========== СЛОЖНЫЕ ЗАПРОСЫ ==========
-@app.route('/records/details', methods=['GET'])
-def get_records_details():
-    records = (db.session.query(Record, Customers, Services)
-               .join(Customers, Record.id_customers == Customers.ID)
-               .join(Services, Record.id_services == Services.ID)
-               .all())
-
-    result = []
-    for record, customer, service in records:
-        result.append({
-            'record_id': record.ID,
-            'date': record.date.isoformat() if record.date else None,
-            'customer': f"{customer.surname} {customer.name}",
-            'customer_phone': customer.phone,
-            'service': service.name,
-            'service_price': service.price
-        })
-
-    return jsonify(result)
 
 
-@app.route('/services/<int:service_id>/materials', methods=['GET'])
-def get_service_materials(service_id):
-    materials = (db.session.query(ServicesSupplies, Supplies)
-                 .join(Supplies, ServicesSupplies.id_supplies == Supplies.ID)
-                 .filter(ServicesSupplies.id_services == service_id)
-                 .all())
 
-    result = []
-    for service_supply, supply in materials:
-        result.append({
-            'material_name': supply.name,
-            'consumption': service_supply.material_consumption,
-            'units': service_supply.units_measurement,
-            'material_price': supply.price
-        })
-
-    return jsonify(result)
+# # ========== СЛОЖНЫЕ ЗАПРОСЫ ==========
+# @app.route('/records/details', methods=['GET'])
+# def get_records_details():
+#     records = (db.session.query(Record, Customers, Services)
+#                .join(Customers, Record.id_customers == Customers.ID)
+#                .join(Services, Record.id_services == Services.ID)
+#                .all())
+#
+#     result = []
+#     for record, customer, service in records:
+#         result.append({
+#             'record_id': record.ID,
+#             'date': record.date.isoformat() if record.date else None,
+#             'customer': f"{customer.surname} {customer.name}",
+#             'customer_phone': customer.phone,
+#             'service': service.name,
+#             'service_price': service.price
+#         })
+#
+#     return jsonify(result)
+#
+#
+# @app.route('/services/<int:service_id>/materials', methods=['GET'])
+# def get_service_materials(service_id):
+#     materials = (db.session.query(ServicesSupplies, Supplies)
+#                  .join(Supplies, ServicesSupplies.id_supplies == Supplies.ID)
+#                  .filter(ServicesSupplies.id_services == service_id)
+#                  .all())
+#
+#     result = []
+#     for service_supply, supply in materials:
+#         result.append({
+#             'material_name': supply.name,
+#             'consumption': service_supply.material_consumption,
+#             'units': service_supply.units_measurement,
+#             'material_price': supply.price
+#         })
+#
+#     return jsonify(result)
 
 
 if __name__ == '__main__':
