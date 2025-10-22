@@ -5,7 +5,7 @@
 -- Dumped from database version 17.2
 -- Dumped by pg_dump version 17.2
 
--- Started on 2025-10-05 14:07:13
+-- Started on 2025-10-22 15:05:09
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -73,7 +73,8 @@ CREATE TABLE public.record (
     "ID" integer NOT NULL,
     date timestamp without time zone,
     id_customers integer NOT NULL,
-    id_services integer NOT NULL
+    id_services integer NOT NULL,
+    name character varying
 );
 
 
@@ -401,6 +402,10 @@ ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."
 -- Data for Name: customers; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY public.customers ("ID", surname, name, patronymic, phone) FROM stdin;
+1	Жидкова	Светик	Дмитривна	9800470987
+2	петров	петя	петрович	+7980047098
+\.
 
 
 --
@@ -409,6 +414,10 @@ ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."
 -- Data for Name: record; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY public.record ("ID", date, id_customers, id_services, name) FROM stdin;
+1	2025-10-17 16:00:00	1	1	\N
+2	2025-12-05 14:00:00	1	1	птица
+\.
 
 
 --
@@ -417,6 +426,10 @@ ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."
 -- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY public.services ("ID", name, price) FROM stdin;
+1	тату 25 см	4000
+2	тату до 25 см	6000
+\.
 
 
 --
@@ -425,6 +438,8 @@ ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."
 -- Data for Name: services_supplies; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY public.services_supplies ("ID", id_services, id_supplies, material_consumption, units_measurement) FROM stdin;
+\.
 
 
 --
@@ -433,6 +448,8 @@ ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."
 -- Data for Name: supplies; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
+COPY public.supplies ("ID", name, price) FROM stdin;
+\.
 
 
 --
@@ -441,7 +458,7 @@ ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."
 -- Name: customers_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."customers_ID_seq"', 1, false);
+SELECT pg_catalog.setval('public."customers_ID_seq"', 2, true);
 
 
 --
@@ -450,7 +467,7 @@ SELECT pg_catalog.setval('public."customers_ID_seq"', 1, false);
 -- Name: record_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."record_ID_seq"', 1, false);
+SELECT pg_catalog.setval('public."record_ID_seq"', 2, true);
 
 
 --
@@ -477,7 +494,7 @@ SELECT pg_catalog.setval('public.record_id_services_seq', 1, false);
 -- Name: services_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."services_ID_seq"', 1, false);
+SELECT pg_catalog.setval('public."services_ID_seq"', 2, true);
 
 
 --
@@ -606,7 +623,7 @@ ALTER TABLE ONLY public.services_supplies
     ADD CONSTRAINT supplies_fkey FOREIGN KEY (id_supplies) REFERENCES public.supplies("ID");
 
 
--- Completed on 2025-10-05 14:07:14
+-- Completed on 2025-10-22 15:05:09
 
 --
 -- PostgreSQL database dump complete
