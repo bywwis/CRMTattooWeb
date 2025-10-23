@@ -214,6 +214,8 @@ def handle_services_supplies():
         db.session.add(new_service_supply)
         db.session.commit()
         return jsonify({'message': 'Расход материала добавлен', 'ID': new_service_supply.ID}), 201
+    
+    
 
 
 

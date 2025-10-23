@@ -1,0 +1,631 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 17.2
+-- Dumped by pg_dump version 17.2
+
+-- Started on 2025-10-22 15:05:09
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 218 (class 1259 OID 24884)
+-- Name: customers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.customers (
+    "ID" integer NOT NULL,
+    surname character varying,
+    name character varying,
+    patronymic character varying,
+    phone character varying
+);
+
+
+ALTER TABLE public.customers OWNER TO postgres;
+
+--
+-- TOC entry 217 (class 1259 OID 24883)
+-- Name: customers_ID_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."customers_ID_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."customers_ID_seq" OWNER TO postgres;
+
+--
+-- TOC entry 4854 (class 0 OID 0)
+-- Dependencies: 217
+-- Name: customers_ID_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."customers_ID_seq" OWNED BY public.customers."ID";
+
+
+--
+-- TOC entry 221 (class 1259 OID 24894)
+-- Name: record; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.record (
+    "ID" integer NOT NULL,
+    date timestamp without time zone,
+    id_customers integer NOT NULL,
+    id_services integer NOT NULL,
+    name character varying
+);
+
+
+ALTER TABLE public.record OWNER TO postgres;
+
+--
+-- TOC entry 219 (class 1259 OID 24892)
+-- Name: record_ID_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."record_ID_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."record_ID_seq" OWNER TO postgres;
+
+--
+-- TOC entry 4855 (class 0 OID 0)
+-- Dependencies: 219
+-- Name: record_ID_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."record_ID_seq" OWNED BY public.record."ID";
+
+
+--
+-- TOC entry 220 (class 1259 OID 24893)
+-- Name: record_id_customers_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.record_id_customers_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.record_id_customers_seq OWNER TO postgres;
+
+--
+-- TOC entry 4856 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: record_id_customers_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.record_id_customers_seq OWNED BY public.record.id_customers;
+
+
+--
+-- TOC entry 226 (class 1259 OID 24925)
+-- Name: record_id_services_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.record_id_services_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.record_id_services_seq OWNER TO postgres;
+
+--
+-- TOC entry 4857 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: record_id_services_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.record_id_services_seq OWNED BY public.record.id_services;
+
+
+--
+-- TOC entry 225 (class 1259 OID 24919)
+-- Name: services; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.services (
+    "ID" integer NOT NULL,
+    name character varying,
+    price integer
+);
+
+
+ALTER TABLE public.services OWNER TO postgres;
+
+--
+-- TOC entry 224 (class 1259 OID 24918)
+-- Name: services_ID_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."services_ID_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."services_ID_seq" OWNER TO postgres;
+
+--
+-- TOC entry 4858 (class 0 OID 0)
+-- Dependencies: 224
+-- Name: services_ID_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."services_ID_seq" OWNED BY public.services."ID";
+
+
+--
+-- TOC entry 230 (class 1259 OID 24943)
+-- Name: services_supplies; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.services_supplies (
+    "ID" integer NOT NULL,
+    id_services integer NOT NULL,
+    id_supplies integer NOT NULL,
+    material_consumption real,
+    units_measurement character varying
+);
+
+
+ALTER TABLE public.services_supplies OWNER TO postgres;
+
+--
+-- TOC entry 227 (class 1259 OID 24940)
+-- Name: services_supplies_ID_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."services_supplies_ID_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."services_supplies_ID_seq" OWNER TO postgres;
+
+--
+-- TOC entry 4859 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: services_supplies_ID_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."services_supplies_ID_seq" OWNED BY public.services_supplies."ID";
+
+
+--
+-- TOC entry 228 (class 1259 OID 24941)
+-- Name: services_supplies_id_services_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.services_supplies_id_services_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.services_supplies_id_services_seq OWNER TO postgres;
+
+--
+-- TOC entry 4860 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: services_supplies_id_services_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.services_supplies_id_services_seq OWNED BY public.services_supplies.id_services;
+
+
+--
+-- TOC entry 229 (class 1259 OID 24942)
+-- Name: services_supplies_id_supplies_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.services_supplies_id_supplies_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.services_supplies_id_supplies_seq OWNER TO postgres;
+
+--
+-- TOC entry 4861 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: services_supplies_id_supplies_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.services_supplies_id_supplies_seq OWNED BY public.services_supplies.id_supplies;
+
+
+--
+-- TOC entry 222 (class 1259 OID 24908)
+-- Name: supplies; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.supplies (
+    "ID" integer NOT NULL,
+    name character varying,
+    price integer
+);
+
+
+ALTER TABLE public.supplies OWNER TO postgres;
+
+--
+-- TOC entry 223 (class 1259 OID 24911)
+-- Name: supplies_ID_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public."supplies_ID_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public."supplies_ID_seq" OWNER TO postgres;
+
+--
+-- TOC entry 4862 (class 0 OID 0)
+-- Dependencies: 223
+-- Name: supplies_ID_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public."supplies_ID_seq" OWNED BY public.supplies."ID";
+
+
+--
+-- TOC entry 4665 (class 2604 OID 24887)
+-- Name: customers ID; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.customers ALTER COLUMN "ID" SET DEFAULT nextval('public."customers_ID_seq"'::regclass);
+
+
+--
+-- TOC entry 4666 (class 2604 OID 24897)
+-- Name: record ID; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record ALTER COLUMN "ID" SET DEFAULT nextval('public."record_ID_seq"'::regclass);
+
+
+--
+-- TOC entry 4667 (class 2604 OID 24898)
+-- Name: record id_customers; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record ALTER COLUMN id_customers SET DEFAULT nextval('public.record_id_customers_seq'::regclass);
+
+
+--
+-- TOC entry 4668 (class 2604 OID 24926)
+-- Name: record id_services; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record ALTER COLUMN id_services SET DEFAULT nextval('public.record_id_services_seq'::regclass);
+
+
+--
+-- TOC entry 4670 (class 2604 OID 24922)
+-- Name: services ID; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services ALTER COLUMN "ID" SET DEFAULT nextval('public."services_ID_seq"'::regclass);
+
+
+--
+-- TOC entry 4671 (class 2604 OID 24946)
+-- Name: services_supplies ID; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services_supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."services_supplies_ID_seq"'::regclass);
+
+
+--
+-- TOC entry 4672 (class 2604 OID 24947)
+-- Name: services_supplies id_services; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services_supplies ALTER COLUMN id_services SET DEFAULT nextval('public.services_supplies_id_services_seq'::regclass);
+
+
+--
+-- TOC entry 4673 (class 2604 OID 24948)
+-- Name: services_supplies id_supplies; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services_supplies ALTER COLUMN id_supplies SET DEFAULT nextval('public.services_supplies_id_supplies_seq'::regclass);
+
+
+--
+-- TOC entry 4669 (class 2604 OID 24912)
+-- Name: supplies ID; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.supplies ALTER COLUMN "ID" SET DEFAULT nextval('public."supplies_ID_seq"'::regclass);
+
+
+--
+-- TOC entry 4836 (class 0 OID 24884)
+-- Dependencies: 218
+-- Data for Name: customers; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.customers ("ID", surname, name, patronymic, phone) FROM stdin;
+1	Жидкова	Светик	Дмитривна	9800470987
+2	петров	петя	петрович	+7980047098
+\.
+
+
+--
+-- TOC entry 4839 (class 0 OID 24894)
+-- Dependencies: 221
+-- Data for Name: record; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.record ("ID", date, id_customers, id_services, name) FROM stdin;
+1	2025-10-17 16:00:00	1	1	\N
+2	2025-12-05 14:00:00	1	1	птица
+\.
+
+
+--
+-- TOC entry 4843 (class 0 OID 24919)
+-- Dependencies: 225
+-- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.services ("ID", name, price) FROM stdin;
+1	тату 25 см	4000
+2	тату до 25 см	6000
+\.
+
+
+--
+-- TOC entry 4848 (class 0 OID 24943)
+-- Dependencies: 230
+-- Data for Name: services_supplies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.services_supplies ("ID", id_services, id_supplies, material_consumption, units_measurement) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4840 (class 0 OID 24908)
+-- Dependencies: 222
+-- Data for Name: supplies; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.supplies ("ID", name, price) FROM stdin;
+\.
+
+
+--
+-- TOC entry 4863 (class 0 OID 0)
+-- Dependencies: 217
+-- Name: customers_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."customers_ID_seq"', 2, true);
+
+
+--
+-- TOC entry 4864 (class 0 OID 0)
+-- Dependencies: 219
+-- Name: record_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."record_ID_seq"', 2, true);
+
+
+--
+-- TOC entry 4865 (class 0 OID 0)
+-- Dependencies: 220
+-- Name: record_id_customers_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.record_id_customers_seq', 1, false);
+
+
+--
+-- TOC entry 4866 (class 0 OID 0)
+-- Dependencies: 226
+-- Name: record_id_services_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.record_id_services_seq', 1, false);
+
+
+--
+-- TOC entry 4867 (class 0 OID 0)
+-- Dependencies: 224
+-- Name: services_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."services_ID_seq"', 2, true);
+
+
+--
+-- TOC entry 4868 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: services_supplies_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."services_supplies_ID_seq"', 1, false);
+
+
+--
+-- TOC entry 4869 (class 0 OID 0)
+-- Dependencies: 228
+-- Name: services_supplies_id_services_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.services_supplies_id_services_seq', 1, false);
+
+
+--
+-- TOC entry 4870 (class 0 OID 0)
+-- Dependencies: 229
+-- Name: services_supplies_id_supplies_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.services_supplies_id_supplies_seq', 1, false);
+
+
+--
+-- TOC entry 4871 (class 0 OID 0)
+-- Dependencies: 223
+-- Name: supplies_ID_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public."supplies_ID_seq"', 1, false);
+
+
+--
+-- TOC entry 4675 (class 2606 OID 24891)
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY ("ID");
+
+
+--
+-- TOC entry 4677 (class 2606 OID 24907)
+-- Name: customers mobile_phone; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT mobile_phone UNIQUE (phone);
+
+
+--
+-- TOC entry 4679 (class 2606 OID 24900)
+-- Name: record record_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record
+    ADD CONSTRAINT record_pkey PRIMARY KEY ("ID");
+
+
+--
+-- TOC entry 4683 (class 2606 OID 24924)
+-- Name: services services_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services
+    ADD CONSTRAINT services_pkey PRIMARY KEY ("ID");
+
+
+--
+-- TOC entry 4685 (class 2606 OID 24952)
+-- Name: services_supplies services_supplies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services_supplies
+    ADD CONSTRAINT services_supplies_pkey PRIMARY KEY ("ID");
+
+
+--
+-- TOC entry 4681 (class 2606 OID 24917)
+-- Name: supplies supplies_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.supplies
+    ADD CONSTRAINT supplies_pkey PRIMARY KEY ("ID");
+
+
+--
+-- TOC entry 4686 (class 2606 OID 24901)
+-- Name: record customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record
+    ADD CONSTRAINT customer_fkey FOREIGN KEY (id_customers) REFERENCES public.customers("ID");
+
+
+--
+-- TOC entry 4687 (class 2606 OID 24931)
+-- Name: record services_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.record
+    ADD CONSTRAINT services_fkey FOREIGN KEY (id_services) REFERENCES public.services("ID") NOT VALID;
+
+
+--
+-- TOC entry 4688 (class 2606 OID 24953)
+-- Name: services_supplies servis_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services_supplies
+    ADD CONSTRAINT servis_fkey FOREIGN KEY (id_services) REFERENCES public.services("ID");
+
+
+--
+-- TOC entry 4689 (class 2606 OID 24958)
+-- Name: services_supplies supplies_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.services_supplies
+    ADD CONSTRAINT supplies_fkey FOREIGN KEY (id_supplies) REFERENCES public.supplies("ID");
+
+
+-- Completed on 2025-10-22 15:05:09
+
+--
+-- PostgreSQL database dump complete
+--
+

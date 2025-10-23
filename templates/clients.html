@@ -64,8 +64,8 @@
             </div>
 
             <div class="form-buttons">
-                <button type="button" class="btn-delete">Удалить</button>
-                <button type="button" class="btn-save">Сохранить</button>
+                <button type="button" class="btn-delete" id="deleteBtn">Удалить</button>
+                <button type="button" class="btn-save" id="saveBtn">Сохранить</button>
             </div>
         </form>
     </div>
@@ -85,21 +85,108 @@
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('modal');
         const openModalBtn = document.getElementById('openModalBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const telephoneInput = document.getElementById('clientTelephone');
+
+        // Функция для валидации телефона (только цифры)
+        function validatePhone(input) {
+            // Сохраняем позицию курсора
+            const cursorPosition = input.selectionStart;
+            
+            // Удаляем все символы, кроме цифр
+            const newValue = input.value.replace(/[^\d]/g, '');
+            
+            // Устанавливаем новое значение
+            input.value = newValue;
+            
+            // Восстанавливаем позицию курсора
+            input.setSelectionRange(cursorPosition, cursorPosition);
+        }
+
+        // Обработчик ввода для поля телефона
+        telephoneInput.addEventListener('input', function() {
+            validatePhone(this);
+        });
+
+        // Функция для закрытия модального окна
+        function closeModal() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientLast').value = '';
+            document.getElementById('clientMiddle').value = '';
+            document.getElementById('clientTelephone').value = '';
+        }
 
         // Открытие модального окна
         openModalBtn.addEventListener('click', function() {
             modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Блокируем прокрутку фона
+            document.body.style.overflow = 'hidden';
         });
 
-        // Закрытие при клике вне модального окна
-        window.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
+        // Сохранение и закрытие
+        saveBtn.addEventListener('click', function() {
+            const surname = document.getElementById('clientLast').value;
+            const name = document.getElementById('clientName').value;
+            const patronymic = document.getElementById('clientMiddle').value;
+            const phone = document.getElementById('clientTelephone').value;
+
+            // Проверяем, что все обязательные поля заполнены
+            if (!surname || !name || !phone) {
+                alert('Заполните фамилию, имя и телефон!');
+                return;
             }
+
+            // Проверяем, что телефон состоит только из цифр
+            if (!/^\d+$/.test(phone)) {
+                alert('Телефон должен содержать только цифры!');
+                return;
+            }
+
+            // Проверяем минимальную длину телефона
+            if (phone.length < 10) {
+                alert('Телефон должен содержать не менее 10 цифр!');
+                return;
+            }
+
+            // Собираем данные из формы
+            const customerData = {
+                surname: surname,
+                name: name,
+                patronymic: patronymic,
+                phone: phone
+            };
+
+            // Отправляем данные на сервер
+            fetch('/customers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(customerData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Клиент сохранен:', data);
+                alert('Клиент успешно добавлен!');
+                closeModal();
+            })
+            .catch(error => {
+                console.error('Ошибка при сохранении:', error);
+                alert('Ошибка при сохранении: ' + error.message);
+            });
         });
 
+        // Закрытие
+        deleteBtn.addEventListener('click', function() {
+            closeModal();
+        });
     });
 </script>
 {% endblock %}

@@ -16,29 +16,33 @@
         <form class="modal-form">
             <div class="form-group">
                 <label for="service">Услуга</label>
-                <input type="text" id="service">
+                <select id="service">
+                    <option value="">Выберите услугу</option>
+                </select>
             </div>
 
             <div class="form-group">
                 <label for="material">Материал</label>
                 <select id="material">
+                    <option value="">Выберите материал</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label for="quantity">Кол-во</label>
-                <input type="text" id="quantity">
+                <input type="number" id="quantity" step="0.01" min="0.01" placeholder="0.00">
             </div>
 
             <div class="form-group">
                 <label for="unit">Ед. измер.</label>
                 <select id="unit">
+                    <option value="">Выберите единицу измерения</option>
                 </select>
             </div>
 
             <div class="form-buttons">
-                <button type="button" class="btn-delete">Удалить</button>
-                <button type="button" class="btn-save">Сохранить</button>
+                <button type="button" class="btn-delete" id="deleteBtn">Удалить</button>
+                <button type="button" class="btn-save" id="saveBtn">Сохранить</button>
             </div>
         </form>
     </div>
@@ -48,19 +52,174 @@
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('modal');
         const openModalBtn = document.getElementById('openModalBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const serviceSelect = document.getElementById('service');
+        const materialSelect = document.getElementById('material');
+        const unitSelect = document.getElementById('unit');
+
+        // Статический список единиц измерения
+        const units = [
+            'шт', 'мл', 'г', 'кг', 'л', 'уп', 'пар', 'тюбик', 'банка'
+        ];
+
+        // Функция для загрузки услуг из БД
+        function loadServices() {
+            fetch('/services')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки услуг');
+                    }
+                    return response.json();
+                })
+                .then(services => {
+                    serviceSelect.innerHTML = '<option value="">Выберите услугу</option>';
+                    
+                    services.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.ID; // ID услуги
+                        option.textContent = `${service.name} - ${service.price} руб.`;
+                        serviceSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке услуг:', error);
+                    serviceSelect.innerHTML = '<option value="">Ошибка загрузки услуг</option>';
+                });
+        }
+
+        // Функция для загрузки материалов из БД
+        function loadMaterials() {
+            fetch('/supplies')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки материалов');
+                    }
+                    return response.json();
+                })
+                .then(materials => {
+                    materialSelect.innerHTML = '<option value="">Выберите материал</option>';
+                    
+                    materials.forEach(material => {
+                        const option = document.createElement('option');
+                        option.value = material.ID; // ID материала
+                        option.textContent = `${material.name} - ${material.price} руб.`;
+                        materialSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке материалов:', error);
+                    materialSelect.innerHTML = '<option value="">Ошибка загрузки материалов</option>';
+                });
+        }
+
+        // Функция для загрузки единиц измерения (статический список)
+        function loadUnits() {
+            unitSelect.innerHTML = '<option value="">Выберите единицу измерения</option>';
+            
+            units.forEach(unit => {
+                const option = document.createElement('option');
+                option.value = unit;
+                option.textContent = unit;
+                unitSelect.appendChild(option);
+            });
+        }
+
+        // Функция для закрытия модального окна
+        function closeModal() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // Очищаем форму при закрытии
+            serviceSelect.value = '';
+            materialSelect.value = '';
+            unitSelect.value = '';
+            document.getElementById('quantity').value = '';
+        }
+
+        // Функция для открытия модального окна
+        function openModal() {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            // Загружаем данные при открытии модального окна
+            loadServices();
+            loadMaterials();
+            loadUnits();
+        }
 
         // Открытие модального окна
-        openModalBtn.addEventListener('click', function() {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Блокируем прокрутку фона
+        openModalBtn.addEventListener('click', openModal);
+
+        // Сохранение данных расходных материалов
+        saveBtn.addEventListener('click', function() {
+            // Получаем значения
+            const serviceValue = serviceSelect.value;
+            const materialValue = materialSelect.value;
+            const quantityValue = document.getElementById('quantity').value;
+            const unitValue = unitSelect.value;
+
+            console.log('Сырые данные:', {
+                serviceValue, materialValue, quantityValue, unitValue
+            });
+
+            // Валидация данных
+            if (!serviceValue || !materialValue || !quantityValue || !unitValue) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            // Формируем данные для отправки
+            const expenseData = {
+                id_services: parseInt(serviceValue),
+                id_supplies: parseInt(materialValue),
+                material_consumption: parseFloat(quantityValue),
+                units_measurement: unitValue
+            };
+
+            console.log('Данные для отправки:', expenseData);
+
+            // Проверка данных
+            if (isNaN(expenseData.id_services) || isNaN(expenseData.id_supplies) || isNaN(expenseData.material_consumption)) {
+                alert('Ошибка в данных! Проверьте правильность введенных значений.');
+                return;
+            }
+
+            if (expenseData.material_consumption <= 0) {
+                alert('Количество должно быть положительным числом!');
+                return;
+            }
+
+            // Отправляем данные на сервер
+            fetch('/services_supplies', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(expenseData)
+            })
+            .then(response => {
+                console.log('Статус ответа:', response.status);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Расход материала сохранен:', data);
+                alert('Данные успешно сохранены!');
+                closeModal();
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Ошибка при сохранении:', error);
+                alert('Ошибка при сохранении: ' + error.message);
+            });
         });
 
-        // Закрытие при клике вне модального окна
-        window.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }
+        // Закрытие по кнопке Удалить
+        deleteBtn.addEventListener('click', function() {
+            closeModal();
         });
 
     });

@@ -46,8 +46,10 @@
 
         <form class="modal-form">
             <div class="form-group">
-                <label for="clientName">Имя</label>
-                <input type="text" id="clientName">
+                <label for="clientSelect">Клиент</label>
+                <select id="clientSelect">
+                    <option value="">Выберите клиента</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -56,8 +58,9 @@
             </div>
 
             <div class="form-group">
-                <label for="service">Услуга</label>
-                <select id="service">
+                <label for="serviceSelect">Услуга</label>
+                <select id="serviceSelect">
+                    <option value="">Выберите услугу</option>
                 </select>
             </div>
 
@@ -67,8 +70,8 @@
             </div>
 
             <div class="form-buttons">
-                <button type="button" class="btn-delete">Удалить</button>
-                <button type="button" class="btn-save">Сохранить</button>
+                <button type="button" class="btn-delete" id="deleteBtn">Удалить</button>
+                <button type="button" class="btn-save" id="saveBtn">Сохранить</button>
             </div>
         </form>
     </div>
@@ -88,19 +91,115 @@
     document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('modal');
         const openModalBtn = document.getElementById('openModalBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const serviceSelect = document.getElementById('serviceSelect');
+        const clientSelect = document.getElementById('clientSelect');
+
+        // Функция для загрузки услуг из базы данных
+        function loadServices() {
+            fetch('/services')
+                .then(response => response.json())
+                .then(services => {
+                    serviceSelect.innerHTML = '<option value="">Выберите услугу</option>';
+                    
+                    services.forEach(service => {
+                        const option = document.createElement('option');
+                        option.value = service.ID; // ID услуги
+                        option.textContent = `${service.name} - ${service.price} руб.`;
+                        serviceSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке услуг:', error);
+                });
+        }
+
+        // Функция для загрузки клиентов из базы данных
+        function loadClients() {
+            fetch('/customers') 
+                .then(response => response.json())
+                .then(customers => {
+                    clientSelect.innerHTML = '<option value="">Выберите клиента</option>';
+                    
+                    customers.forEach(customer => {
+                        const option = document.createElement('option');
+                        option.value = customer.ID; // ID клиента
+                        option.textContent = `${customer.name} ${customer.phone || ''}`;
+                        clientSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке клиентов:', error);
+                });
+        }
+
+        // Функция для закрытия модального окна
+        function closeModal() {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // Очищаем форму при закрытии
+            document.getElementById('tattooName').value = '';
+            document.getElementById('date').value = '';
+            clientSelect.value = '';
+            serviceSelect.value = '';
+        }
 
         // Открытие модального окна
         openModalBtn.addEventListener('click', function() {
             modal.style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Блокируем прокрутку фона
+            document.body.style.overflow = 'hidden';
+            // Загружаем услуги и клиентов при открытии модального окна
+            loadServices();
+            loadClients();
         });
 
-        // Закрытие при клике вне модального окна
-        window.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
+        // Сохранение записи
+        saveBtn.addEventListener('click', function() {
+            // Собираем данные из формы
+            const recordData = {
+                id_customers: parseInt(clientSelect.value), 
+                id_services: parseInt(serviceSelect.value), 
+                date: document.getElementById('date').value,
+                name: document.getElementById('tattooName').value
+            };
+
+            console.log('Отправляемые данные:', recordData);
+
+            // Проверяем обязательные поля
+            if (!recordData.id_customers || !recordData.id_services || !recordData.date || !recordData.name) {
+                alert('Заполните все поля!');
+                return;
             }
+
+            // Отправляем данные на сервер
+            fetch('/records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(recordData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Запись сохранена:', data);
+                alert('Запись успешно сохранена!');
+                closeModal();
+            })
+            .catch(error => {
+                console.error('Ошибка при сохранении записи:', error);
+                alert('Ошибка при сохранении записи: ' + error.message);
+            });
+        });
+
+        // Закрытие по кнопке Удалить
+        deleteBtn.addEventListener('click', function() {
+            closeModal();
         });
 
     });
