@@ -38,12 +38,13 @@
     <button class="add-button" id="openModalBtn">Добавить</button>
 
     <!-- Список записей -->
-    <div class="records-list">
+    <div class="records-list" id="recordsList">
+        <div class="no-records">Записей нет.</div>
         <div class="record-date">24.08.2025</div>
         <div class="record-card" data-record-id="1">
             <div class="record-content">
+                <div class="record-number">1.</div>
                 <div class="record-details">
-                    <div class="record-number">1.</div>
                     <div class="record-name">Имя клиента</div>
                     <div class="record-tattoo">Название тату</div>
                     <div class="record-service">Название услуги</div>
@@ -112,6 +113,135 @@
         const deleteBtn = document.getElementById('deleteBtn');
         const serviceSelect = document.getElementById('serviceSelect');
         const clientSelect = document.getElementById('clientSelect');
+        const recordsList = document.getElementById('recordsList');
+
+        // Переменные для хранения данных
+        let customersData = [];
+        let servicesData = [];
+
+        function loadRecords() {
+            // Загрузка всех необходимых данных параллельно
+            Promise.all([
+                fetch('/customers').then(r => r.json()),
+                fetch('/services').then(r => r.json()),
+                fetch('/records').then(r => r.json())
+            ])
+            .then(([customers, services, records]) => {
+                // Сохраняем данные для использования
+                customersData = customers;
+                servicesData = services;
+                // Отображаем записи
+                displayRecords(records);
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке данных:', error);
+                recordsList.innerHTML = '<div class="no-records">Ошибка загрузки записей</div>';
+            });
+        }
+
+        // Функция для получения данных клиента по ID
+        function getCustomerName(customerId) {
+            const customer = customersData.find(c => c.ID === customerId);
+            return customer ? `${customer.name} ${customer.phone}` : `Клиент #${customerId}`;
+        }
+
+        // Функция для получения названия услуги по ID
+        function getServiceName(serviceId) {
+            const service = servicesData.find(s => s.ID === serviceId);
+            return service ? service.name : `Услуга #${serviceId}`;
+        }
+
+        // Функция для отображения записей в списке
+        function displayRecords(records) {
+            // Проверка, есть ли записи
+            if (records.length === 0) {
+                recordsList.innerHTML = '<div class="no-records">Записей нет.</div>';
+                return;
+            }
+
+            // Группируем записи по дате
+            const groupedRecords = groupRecordsByDate(records);
+
+            // Создаем HTML для отображения
+            let html = '';
+            let recordCounter = 1;
+
+            // Проходим по всем датам
+            for (const [date, dateRecords] of Object.entries(groupedRecords)) {
+                // Добавляем заголовок с датой
+                html += `<div class="record-date">${formatDate(date)}</div>`;
+
+                // Добавляем записи для этой даты
+                dateRecords.forEach(record => {
+                    // Преобразуем ID в названия
+                    const customerName = getCustomerName(record.id_customers);
+                    const serviceName = getServiceName(record.id_services);
+
+                    html += `
+                        <div class="record-card" data-record-id="${record.ID}">
+                            <div class="record-content">
+                                <div class="record-details">
+                                    <div class="record-number">${recordCounter}.</div>
+                                    <div class="record-name">${customerName}</div>
+                                    <div class="record-tattoo">${record.name || 'Не указано'}</div>
+                                    <div class="record-service">${serviceName}</div>
+                                    <div class="record-time">${formatTime(record.date)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    recordCounter++;
+                });
+            }
+
+            recordsList.innerHTML = html;
+        }
+
+        // Функция для группировки записей по дате
+        function groupRecordsByDate(records) {
+            const grouped = {};
+
+            records.forEach(record => {
+                const date = record.date ? record.date.split('T')[0] : 'Без даты';
+
+                if (!grouped[date]) {
+                    grouped[date] = [];
+                }
+
+                grouped[date].push(record);
+            });
+
+        const sortedGrouped = {};
+        Object.keys(grouped)
+            .sort((a, b) => new Date(a) - new Date(b))
+            .forEach(date => {
+                sortedGrouped[date] = grouped[date];
+            });
+            return sortedGrouped;
+        }
+
+        // Функция для форматирования даты
+        function formatDate(dateString) {
+            if (dateString === 'Без даты') return dateString;
+
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
+        // Функция для форматирования времени
+        function formatTime(dateTimeString) {
+            if (!dateTimeString) return '--:--';
+
+            const date = new Date(dateTimeString);
+            return date.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
 
         // Функция для загрузки услуг из базы данных
         function loadServices() {
@@ -119,7 +249,7 @@
                 .then(response => response.json())
                 .then(services => {
                     serviceSelect.innerHTML = '<option value="">Выберите услугу</option>';
-                    
+
                     services.forEach(service => {
                         const option = document.createElement('option');
                         option.value = service.ID; // ID услуги
@@ -134,11 +264,11 @@
 
         // Функция для загрузки клиентов из базы данных
         function loadClients() {
-            fetch('/customers') 
+            fetch('/customers')
                 .then(response => response.json())
                 .then(customers => {
                     clientSelect.innerHTML = '<option value="">Выберите клиента</option>';
-                    
+
                     customers.forEach(customer => {
                         const option = document.createElement('option');
                         option.value = customer.ID; // ID клиента
@@ -175,8 +305,8 @@
         saveBtn.addEventListener('click', function() {
             // Собираем данные из формы
             const recordData = {
-                id_customers: parseInt(clientSelect.value), 
-                id_services: parseInt(serviceSelect.value), 
+                id_customers: parseInt(clientSelect.value),
+                id_services: parseInt(serviceSelect.value),
                 date: document.getElementById('date').value,
                 name: document.getElementById('tattooName').value
             };
@@ -207,6 +337,7 @@
                 console.log('Запись сохранена:', data);
                 alert('Запись успешно сохранена!');
                 closeModal();
+                loadRecords();
             })
             .catch(error => {
                 console.error('Ошибка при сохранении записи:', error);
@@ -219,6 +350,7 @@
             closeModal();
         });
 
+        loadRecords();
     });
 </script>
 {% endblock %}

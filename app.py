@@ -17,24 +17,24 @@ def create_tables():
 
 # Страницы
 @app.route('/')
-@app.route('/records')
-def records():
+@app.route('/records-page')
+def records_page():
     return render_template('records.html')
 
-@app.route('/clients')
-def clients():
+@app.route('/clients-page')
+def clients_page():
     return render_template('clients.html')
 
-@app.route('/expenses')
-def expenses():
+@app.route('/expenses-page')
+def expenses_page():
     return render_template('expenses.html')
 
-@app.route('/prices')
-def prices():
+@app.route('/prices-page')
+def prices_page():
     return render_template('prices.html')
 
-@app.route('/finance')
-def finance():
+@app.route('/finance-page')
+def finance_page():
     return render_template('finance.html')
 
 # Клиенты
@@ -122,49 +122,6 @@ def handle_supplies():
 
 
 # Записи
-# Получить одну запись по ID
-@app.route('/records/<int:record_id>', methods=['GET'])
-def get_record(record_id):
-    record = db.session.query(Record).filter(Record.ID == record_id).first()
-    if record:
-        return jsonify({
-            'ID': record.ID,
-            'id_customers': record.id_customers,
-            'id_services': record.id_services,
-            'date': record.date.isoformat() if record.date else None,
-            'name': record.name
-        })
-    return jsonify({'error': 'Запись не найдена'}), 404
-
-
-# Обновить запись
-@app.route('/records/<int:record_id>', methods=['PUT'])
-def update_record(record_id):
-    record = db.session.query(Record).filter(Record.ID == record_id).first()
-    if not record:
-        return jsonify({'error': 'Запись не найдена'}), 404
-
-    data = request.json
-    record.id_customers = data.get('id_customers', record.id_customers)
-    record.id_services = data.get('id_services', record.id_services)
-    record.date = data.get('date', record.date)
-    record.name = data.get('name', record.name)
-
-    db.session.commit()
-    return jsonify({'message': 'Запись обновлена'})
-
-
-# Удалить запись
-@app.route('/records/<int:record_id>', methods=['DELETE'])
-def delete_record(record_id):
-    record = db.session.query(Record).filter(Record.ID == record_id).first()
-    if not record:
-        return jsonify({'error': 'Запись не найдена'}), 404
-
-    db.session.delete(record)
-    db.session.commit()
-    return jsonify({'message': 'Запись удалена'})
-
 @app.route('/records', methods=['GET', 'POST'])
 def handle_records():
     if request.method == 'GET':
@@ -189,6 +146,45 @@ def handle_records():
         db.session.commit()
         return jsonify({'message': 'Запись добавлена', 'ID': new_record.ID}), 201
 
+@app.route('/records/<int:record_id>', methods=['GET'])
+def get_record(record_id):
+    record = db.session.query(Record).filter(Record.ID == record_id).first()
+    if record:
+        return jsonify({
+            'ID': record.ID,
+            'id_customers': record.id_customers,
+            'id_services': record.id_services,
+            'date': record.date.isoformat() if record.date else None,
+            'name': record.name
+        })
+    return jsonify({'error': 'Запись не найдена'}), 404
+
+# Обновить запись
+@app.route('/records/<int:record_id>', methods=['PUT'])
+def update_record(record_id):
+    record = db.session.query(Record).filter(Record.ID == record_id).first()
+    if not record:
+        return jsonify({'error': 'Запись не найдена'}), 404
+
+    data = request.json
+    record.id_customers = data.get('id_customers', record.id_customers)
+    record.id_services = data.get('id_services', record.id_services)
+    record.date = data.get('date', record.date)
+    record.name = data.get('name', record.name)
+
+    db.session.commit()
+    return jsonify({'message': 'Запись обновлена'})
+
+# Удалить запись
+@app.route('/records/<int:record_id>', methods=['DELETE'])
+def delete_record(record_id):
+    record = db.session.query(Record).filter(Record.ID == record_id).first()
+    if not record:
+        return jsonify({'error': 'Запись не найдена'}), 404
+
+    db.session.delete(record)
+    db.session.commit()
+    return jsonify({'message': 'Запись удалена'})
 
 # Расходные материалы
 @app.route('/services_supplies', methods=['GET', 'POST'])

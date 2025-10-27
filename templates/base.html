@@ -11,11 +11,11 @@
 <body>
     <nav class="menu">
         <div class="menu-container">
-            <a href="{{ url_for('records') }}" class="menu-button {% if request.endpoint == 'records' %}active{% endif %}">Записи</a>
-            <a href="{{ url_for('clients') }}" class="menu-button {% if request.endpoint == 'clients' %}active{% endif %}">Клиенты</a>
-            <a href="{{ url_for('expenses') }}" class="menu-button {% if request.endpoint == 'expenses' %}active{% endif %}">Расход</a>
-            <a href="{{ url_for('prices') }}" class="menu-button {% if request.endpoint == 'prices' %}active{% endif %}">Прайс</a>
-            <a href="{{ url_for('finance') }}" class="menu-button {% if request.endpoint == 'finance' %}active{% endif %}">Финансы</a>
+            <a href="{{ url_for('records_page') }}" class="menu-button {% if request.endpoint == 'records_page' %}active{% endif %}">Записи</a>
+            <a href="{{ url_for('clients_page') }}" class="menu-button {% if request.endpoint == 'clients_page' %}active{% endif %}">Клиенты</a>
+            <a href="{{ url_for('expenses_page') }}" class="menu-button {% if request.endpoint == 'expenses_page' %}active{% endif %}">Расход</a>
+            <a href="{{ url_for('prices_page') }}" class="menu-button {% if request.endpoint == 'prices_page' %}active{% endif %}">Прайс</a>
+            <a href="{{ url_for('finance_page') }}" class="menu-button {% if request.endpoint == 'finance_page' %}active{% endif %}">Финансы</a>
         </div>
     </nav>
 
