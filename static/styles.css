@@ -280,14 +280,15 @@ body {
     gap: 15px;
     align-items: center;
     flex-wrap: wrap;
-}
-
-.record-number,
-.record-name,
-.record-tattoo,
-.record-service,
-.record-time {
     color: #513728;
     font-family: 'Sofia Sans';
     font-size: 25px;
+}
+
+.no-records {
+    text-align: center;
+    color: #513728;
+    font-family: 'Sofia Sans';
+    font-size: 25px;
+    padding: 20px;
 }

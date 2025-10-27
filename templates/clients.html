@@ -35,6 +35,23 @@
 
     <!-- Кнопка добавить -->
     <button class="add-button" id="openModalBtn">Добавить</button>
+
+    <!-- Список записей -->
+    <div class="records-list">
+        <!--<div class="no-records">Записей нет.</div>-->
+        <div class="record-card" data-record-id="1">
+            <div class="record-content">
+                <div class="record-details">
+                    <div class="record-number">1.</div>
+                    <div class="record-name">Имя</div>
+                    <div class="record-last">Фамилия</div>
+                    <div class="record-middle">Отчество</div>
+                    <div class="record-telephone">Телефон</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Модальное окно -->
@@ -77,6 +94,7 @@
         justify-content: flex-end;
         gap: 20px;
         margin-bottom: 30px;
+        margin: 0 4% 0 auto;
         padding: 20px;
     }
 </style>
