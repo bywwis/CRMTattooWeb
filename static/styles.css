@@ -84,7 +84,6 @@ body {
     font-size: 25px;
     display: block;
     margin: 0 auto 0 5%;
-    transition: all 0.3s ease;
     font-weight: bold;
     font-family: 'Sofia Sans';
 }
@@ -109,7 +108,6 @@ body {
     font-weight: bold;
     font-family: 'Sofia Sans';
     cursor: pointer;
-    transition: all 0.3s ease;
     min-width: 150px;
     appearance: none;
 }
@@ -236,4 +234,60 @@ body {
 .btn-delete:hover,
 .btn-save:hover {
     color: #EDD4C3;
+}
+
+/* Стили для записей данных*/
+.records-list {
+    margin: 20px 5% 0 5%;
+    padding: 20px;
+    background-color: #C1A28E;
+    border-radius: 10px;
+}
+
+.record-card {
+     background-color: #EDD4C3;
+     border: none;
+     border-radius: 5px;
+     padding: 4px;
+     margin-bottom: 15px;
+     cursor: pointer;
+}
+
+.record-card:hover {
+    background-color: #E5C8B0;
+}
+
+.record-date {
+    color: #513728;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-family: 'Sofia Sans';
+    font-size: 25px;
+}
+
+.record-content {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    padding: 0px 8px;
+}
+
+.record-details {
+    flex-grow: 1;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.record-number,
+.record-name,
+.record-tattoo,
+.record-service,
+.record-time {
+    color: #513728;
+    font-family: 'Sofia Sans';
+    font-size: 25px;
 }
