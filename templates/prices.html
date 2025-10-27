@@ -8,7 +8,7 @@
     <button class="add-button" id="openModalBtn">Добавить</button>
 
     <!-- Список записей -->
-    <div class="records-list">
+    <div class="records-list" id="servicesList">
         <div class="no-records">Записей нет.</div>
     </div>
 </div>
@@ -44,6 +44,67 @@
         const saveBtn = document.getElementById('saveBtn');
         const deleteBtn = document.getElementById('deleteBtn');
         const priceInput = document.getElementById('price');
+        const servicesList = document.getElementById('servicesList');
+
+        // Функция для загрузки услуг с сервера
+        function loadServices() {
+            // Отправка GET запроса на endpoint /services
+            fetch('/services')
+                .then(response => {
+                    // Проверка, что ответ от сервера успешный
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки услуг');
+                    }
+                    // Преобразование ответа в JSON формат
+                    return response.json();
+                })
+                .then(services => {
+                    // Если данные успешно получены, передача их в функцию отображения
+                    displayServices(services);
+                })
+                .catch(error => {
+                    // Обработка ошибки (сетевые проблемы, ошибки сервера и т.д.)
+                    console.error('Ошибка при загрузке услуг:', error);
+                    // Показ сообщения об ошибке в интерфейсе
+                    servicesList.innerHTML = '<div class="no-records">Ошибка загрузки данных</div>';
+                });
+        }
+
+        // Функция для отображения услуг в списке
+        function displayServices(services) {
+            // Проверка, есть ли записи в полученном массиве
+            if (services.length === 0) {
+                // Если массив пустой, показ сообщения "Услуг нет"
+                servicesList.innerHTML = '<div class="no-records">Записей нет.</div>';
+                return;
+            }
+
+            // Создание переменной для накопления HTML разметки
+            let html = '';
+
+            // Прохождение по каждой услуге в массиве services
+            services.forEach((service, index) => {
+                // Для каждой услуги создание HTML карточки:
+                // - data-service-id: уникальный идентификатор услуги из базы данных
+                // - record-number: порядковый номер
+                // - record-name: название услуги
+                // - record-price: цена услуги
+                html += `
+                    <div class="record-card" data-service-id="${service.ID}">
+                        <div class="record-content">
+                            <div class="record-details">
+                                <div class="record-number">${index + 1}.</div>
+                                <div class="record-name">${service.name || ''}</div>
+                                <div class="record-price">${service.price || ''} ₽</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Вставление сгенерированной HTML разметки в контейнер списка
+            servicesList.innerHTML = html;
+        }
 
         // Функция для валидации цены (только цифры)
         function validatePrice(input) {
@@ -120,6 +181,7 @@
                 console.log('Услуга сохранена:', data);
                 alert('Услуга успешно добавлена!');
                 closeModal();
+                loadServices();
             })
             .catch(error => {
                 console.error('Ошибка при сохранении:', error);
@@ -132,6 +194,7 @@
             closeModal();
         });
 
+        loadServices();
     });
 </script>
 {% endblock %}

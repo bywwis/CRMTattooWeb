@@ -37,19 +37,8 @@
     <button class="add-button" id="openModalBtn">Добавить</button>
 
     <!-- Список записей -->
-    <div class="records-list">
-        <!--<div class="no-records">Записей нет.</div>-->
-        <div class="record-card" data-record-id="1">
-            <div class="record-content">
-                <div class="record-details">
-                    <div class="record-number">1.</div>
-                    <div class="record-name">Имя</div>
-                    <div class="record-last">Фамилия</div>
-                    <div class="record-middle">Отчество</div>
-                    <div class="record-telephone">Телефон</div>
-                </div>
-            </div>
-        </div>
+    <div class="records-list" id="clientsList">
+       <div class="no-records">Записей нет.</div>
     </div>
 
 </div>
@@ -106,18 +95,83 @@
         const saveBtn = document.getElementById('saveBtn');
         const deleteBtn = document.getElementById('deleteBtn');
         const telephoneInput = document.getElementById('clientTelephone');
+        const clientsList = document.getElementById('clientsList');
+
+        // Функция для загрузки клиентов с сервера
+        function loadClients() {
+            // Отправка GET запрос на endpoint /customers
+            fetch('/customers')
+                .then(response => {
+                    // Проверка, что ответ от сервера успешный
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки клиентов');
+                    }
+                    // Преобразование ответа в JSON формат
+                    return response.json();
+                })
+                .then(customers => {
+                    // Если данные успешно получены, передача их в функцию отображения
+                    displayClients(customers);
+                })
+                .catch(error => {
+                    // Обработка ошибки (сетевые проблемы, ошибки сервера и т.д.)
+                    console.error('Ошибка при загрузке клиентов:', error);
+                    // Показ сообщения об ошибке в интерфейсе
+                    clientsList.innerHTML = '<div class="no-records">Ошибка загрузки клиентов</div>';
+                });
+        }
+
+        // Функция для отображения клиентов в списке
+        function displayClients(customers) {
+            // Проверка, есть ли клиенты в полученном массиве
+            if (customers.length === 0) {
+                // Если массив пустой, показ сообщения
+                clientsList.innerHTML = '<div class="no-records">Записей нет.</div>';
+                return;
+            }
+
+            // Создание переменной для накопления HTML разметки
+            let html = '';
+
+            // Прохождение по каждому клиенту в массиве customers
+            customers.forEach((customer, index) => {
+                // Для каждого клиента создание HTML карточки:
+                // - data-client-id: уникальный идентификатор клиента из базы данных
+                // - record-number: порядковый номер
+                // - record-name: имя клиента
+                // - record-last: фамилия клиента
+                // - record-middle: отчество клиента
+                // - record-telephone: телефон клиента
+                html += `
+                    <div class="record-card" data-client-id="${customer.ID}">
+                        <div class="record-content">
+                            <div class="record-details">
+                                <div class="record-number">${index + 1}.</div>
+                                <div class="record-name">${customer.name || ''}</div>
+                                <div class="record-last">${customer.surname || ''}</div>
+                                <div class="record-middle">${customer.patronymic || ''}</div>
+                                <div class="record-telephone">${customer.phone || ''}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Вставление сгенерированной HTML разметку в контейнер списка клиентов
+            clientsList.innerHTML = html;
+        }
 
         // Функция для валидации телефона (только цифры)
         function validatePhone(input) {
             // Сохраняем позицию курсора
             const cursorPosition = input.selectionStart;
-            
+
             // Удаляем все символы, кроме цифр
             const newValue = input.value.replace(/[^\d]/g, '');
-            
+
             // Устанавливаем новое значение
             input.value = newValue;
-            
+
             // Восстанавливаем позицию курсора
             input.setSelectionRange(cursorPosition, cursorPosition);
         }
@@ -194,6 +248,7 @@
                 console.log('Клиент сохранен:', data);
                 alert('Клиент успешно добавлен!');
                 closeModal();
+                loadClients();
             })
             .catch(error => {
                 console.error('Ошибка при сохранении:', error);
@@ -205,6 +260,8 @@
         deleteBtn.addEventListener('click', function() {
             closeModal();
         });
+
+        loadClients();
     });
 </script>
 {% endblock %}

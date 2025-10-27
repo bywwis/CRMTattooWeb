@@ -8,7 +8,7 @@
     <button class="add-button" id="openModalBtn">Добавить</button>
 
     <!-- Список записей -->
-    <div class="records-list">
+    <div class="records-list" id="expensesList">
         <div class="no-records">Записей нет.</div>
     </div>
 
@@ -63,6 +63,78 @@
         const serviceSelect = document.getElementById('service');
         const materialSelect = document.getElementById('material');
         const unitSelect = document.getElementById('unit');
+        const expensesList = document.getElementById('expensesList');
+
+// Функция для загрузки расходных материалов с сервера
+        function loadExpenses() {
+            // Сначала загружаем услуги и материалы, потом расходы
+            Promise.all([
+                fetch('/services').then(r => r.json()),
+                fetch('/supplies').then(r => r.json()),
+                fetch('/services_supplies').then(r => r.json())
+            ])
+            .then(([services, supplies, expenses]) => {
+                // Сохраняем данные для использования в отображении
+                servicesData = services;
+                materialsData = supplies;
+                // Отображаем расходы
+                displayExpenses(expenses);
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке данных:', error);
+                expensesList.innerHTML = '<div class="no-records">Ошибка загрузки данных</div>';
+            });
+        }
+
+        // Функция для получения названия услуги по ID
+        function getServiceName(serviceId) {
+            const service = servicesData.find(s => s.ID === serviceId);
+            return service ? service.name : `Услуга #${serviceId}`;
+        }
+
+        // Функция для получения названия материала по ID
+        function getMaterialName(materialId) {
+            const material = materialsData.find(m => m.ID === materialId);
+            return material ? material.name : `Материал #${materialId}`;
+        }
+
+        // Функция для отображения расходных материалов в списке
+        function displayExpenses(expenses) {
+            // Проверка, есть ли записи в полученном массиве
+            if (expenses.length === 0) {
+                // Если массив пустой, показ сообщения "Записей нет"
+                expensesList.innerHTML = '<div class="no-records">Записей нет.</div>';
+                return;
+            }
+
+            // Создание переменной для накопления HTML разметки
+            let html = '';
+
+            // Прохождение по каждой записи в массиве expenses
+            expenses.forEach((expense, index) => {
+                // Получаем названия вместо ID
+                const serviceName = getServiceName(expense.id_services);
+                const materialName = getMaterialName(expense.id_supplies);
+
+                // Для каждой записи создание HTML карточки:
+                html += `
+                    <div class="record-card" data-expense-id="${expense.ID}">
+                        <div class="record-content">
+                            <div class="record-details">
+                                <div class="record-number">${index + 1}.</div>
+                                <div class="record-service" title="ID: ${expense.id_services}">${serviceName}</div>
+                                <div class="record-material" title="ID: ${expense.id_supplies}">${materialName}</div>
+                                <div class="record-quantity">${expense.material_consumption || '0'}</div>
+                                <div class="record-unit">${expense.units_measurement || 'шт'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Вставление сгенерированной HTML разметки в контейнер списка
+            expensesList.innerHTML = html;
+        }
 
         // Статический список единиц измерения
         const units = [
@@ -216,6 +288,7 @@
                 alert('Данные успешно сохранены!');
                 closeModal();
                 location.reload();
+                loadExpenses();
             })
             .catch(error => {
                 console.error('Ошибка при сохранении:', error);
@@ -228,6 +301,7 @@
             closeModal();
         });
 
+        loadExpenses();
     });
 </script>
 {% endblock %}
