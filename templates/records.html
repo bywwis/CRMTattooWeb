@@ -59,9 +59,11 @@
 <!-- Модальное окно -->
 <div id="modal" class="modal">
     <div class="modal-content">
-        <h2>Запись</h2>
+        <h2 id="modalTitle">Запись</h2>
 
         <form class="modal-form">
+            <input type="hidden" id="recordId">
+
             <div class="form-group">
                 <label for="clientSelect">Клиент</label>
                 <select id="clientSelect">
@@ -103,6 +105,15 @@
         margin: 0 4% 0 auto;
         padding: 20px;
     }
+
+    .record-card {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .record-card:hover {
+        background-color: #f5f5f5;
+    }
 </style>
 
 <script>
@@ -114,10 +125,15 @@
         const serviceSelect = document.getElementById('serviceSelect');
         const clientSelect = document.getElementById('clientSelect');
         const recordsList = document.getElementById('recordsList');
+        const recordIdInput = document.getElementById('recordId');
+        const modalTitle = document.getElementById('modalTitle');
+        const tattooNameInput = document.getElementById('tattooName');
+        const dateInput = document.getElementById('date');
 
         // Переменные для хранения данных
         let customersData = [];
         let servicesData = [];
+        let currentRecordId = null; // ID текущей редактируемой записи
 
         function loadRecords() {
             // Загрузка всех необходимых данных параллельно
@@ -195,6 +211,87 @@
             }
 
             recordsList.innerHTML = html;
+
+            // Добавляем обработчики двойного клика для всех записей
+            addDoubleClickHandlers();
+        }
+
+        // Функция для добавления обработчиков двойного клика
+        function addDoubleClickHandlers() {
+            const recordCards = document.querySelectorAll('.record-card');
+
+            recordCards.forEach(card => {
+                card.addEventListener('dblclick', function() {
+                    const recordId = this.getAttribute('data-record-id');
+                    openEditModal(recordId);
+                });
+            });
+        }
+
+        // Функция для открытия модального окна в режиме редактирования
+        function openEditModal(recordId) {
+            currentRecordId = recordId;
+
+            // Загружаем данные записи
+            fetch(`/records/${recordId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Запись не найдена');
+                    }
+                    return response.json();
+                })
+                .then(record => {
+                    // Заполняем форму данными записи
+                    recordIdInput.value = record.ID;
+                    clientSelect.value = record.id_customers;
+                    serviceSelect.value = record.id_services;
+                    tattooNameInput.value = record.name || '';
+
+                    // Форматируем дату для input[type=datetime-local]
+                    if (record.date) {
+                        const date = new Date(record.date);
+                        const localDateTime = date.toISOString().slice(0, 16);
+                        dateInput.value = localDateTime;
+                    } else {
+                        dateInput.value = '';
+                    }
+
+                    // Обновляем заголовок модального окна
+                    modalTitle.textContent = 'Редактирование записи';
+
+                    // Показываем кнопку удаления
+                    deleteBtn.style.display = 'block';
+
+                    // Открываем модальное окно
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке записи:', error);
+                    alert('Ошибка при загрузке записи: ' + error.message);
+                });
+        }
+
+        // Функция для открытия модального окна в режиме создания
+        function openCreateModal() {
+            currentRecordId = null;
+            modalTitle.textContent = 'Новая запись';
+            deleteBtn.style.display = 'none';
+
+            // Очищаем форму
+            recordIdInput.value = '';
+            clientSelect.value = '';
+            serviceSelect.value = '';
+            tattooNameInput.value = '';
+            dateInput.value = '';
+
+            // Загружаем списки
+            loadServices();
+            loadClients();
+
+            // Открываем модальное окно
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
         // Функция для группировки записей по дате
@@ -211,12 +308,12 @@
                 grouped[date].push(record);
             });
 
-        const sortedGrouped = {};
-        Object.keys(grouped)
-            .sort((a, b) => new Date(a) - new Date(b))
-            .forEach(date => {
-                sortedGrouped[date] = grouped[date];
-            });
+            const sortedGrouped = {};
+            Object.keys(grouped)
+                .sort((a, b) => new Date(a) - new Date(b))
+                .forEach(date => {
+                    sortedGrouped[date] = grouped[date];
+                });
             return sortedGrouped;
         }
 
@@ -285,21 +382,11 @@
         function closeModal() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
-            // Очищаем форму при закрытии
-            document.getElementById('tattooName').value = '';
-            document.getElementById('date').value = '';
-            clientSelect.value = '';
-            serviceSelect.value = '';
+            currentRecordId = null;
         }
 
-        // Открытие модального окна
-        openModalBtn.addEventListener('click', function() {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            // Загружаем услуги и клиентов при открытии модального окна
-            loadServices();
-            loadClients();
-        });
+        // Открытие модального окна для создания новой записи
+        openModalBtn.addEventListener('click', openCreateModal);
 
         // Сохранение записи
         saveBtn.addEventListener('click', function() {
@@ -319,9 +406,18 @@
                 return;
             }
 
+            let url = '/records';
+            let method = 'POST';
+
+            // Если редактируем существующую запись
+            if (currentRecordId) {
+                url = `/records/${currentRecordId}`;
+                method = 'PUT';
+            }
+
             // Отправляем данные на сервер
-            fetch('/records', {
-                method: 'POST',
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -345,11 +441,46 @@
             });
         });
 
-        // Закрытие по кнопке Удалить
+        // Удаление записи
         deleteBtn.addEventListener('click', function() {
-            closeModal();
+            if (!currentRecordId) {
+                alert('Нет записи для удаления');
+                return;
+            }
+
+            if (!confirm('Вы уверены, что хотите удалить эту запись?')) {
+                return;
+            }
+
+            fetch(`/records/${currentRecordId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Ошибка сервера');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Запись удалена:', data);
+                alert('Запись успешно удалена!');
+                closeModal();
+                loadRecords();
+            })
+            .catch(error => {
+                console.error('Ошибка при удалении записи:', error);
+                alert('Ошибка при удалении записи: ' + error.message);
+            });
         });
 
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Инициализация
         loadRecords();
     });
 </script>
