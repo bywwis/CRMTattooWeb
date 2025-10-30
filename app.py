@@ -121,7 +121,7 @@ def handle_supplies():
         return jsonify({'message': 'Материал добавлен', 'ID': new_supply.ID}), 201
 
 
-# Записи
+# Записиz
 @app.route('/records', methods=['GET', 'POST'])
 def handle_records():
     if request.method == 'GET':

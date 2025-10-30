@@ -233,7 +233,13 @@
             currentRecordId = recordId;
 
             // Загружаем данные записи
-            fetch(`/records/${recordId}`)
+             Promise.all([
+                loadServices(),
+                loadClients()
+            ]).then(() => {
+                // После загрузки списков загружаем данные записи
+                return fetch(`/records/${recordId}`);
+            })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Запись не найдена');
