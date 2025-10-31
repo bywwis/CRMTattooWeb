@@ -7,26 +7,12 @@
     <!-- Фильтры с выпадающими списками -->
     <div class="filters">
         <div class="filter-group">
-            <select class="filter-select">
-                <option value="">Август</option>
-                <option value="january">Январь</option>
-                <option value="february">Февраль</option>
-                <option value="march">Март</option>
-                <option value="april">Апрель</option>
-                <option value="may">Май</option>
-                <option value="june">Июнь</option>
-                <option value="july">Июль</option>
-                <option value="august">Август</option>
-                <option value="september">Сентябрь</option>
-                <option value="october">Октябрь</option>
-                <option value="november">Ноябрь</option>
-                <option value="december">Декабрь</option>
-            </select>
+            <input type="date" class="filter-select">
         </div>
 
         <div class="filter-group">
             <select class="filter-select">
-                <option value="">Месяц</option>
+                <option value="">Период</option>
                 <option value="day">День</option>
                 <option value="month">Месяц</option>
                 <option value="year">Год</option>
@@ -129,11 +115,13 @@
         const modalTitle = document.getElementById('modalTitle');
         const tattooNameInput = document.getElementById('tattooName');
         const dateInput = document.getElementById('date');
+        const dateFilter = document.querySelector('input[type="date"]');
 
         // Переменные для хранения данных
         let customersData = [];
         let servicesData = [];
         let currentRecordId = null; // ID текущей редактируемой записи
+        let allRecords = []; // Все загруженные записи
 
         function loadRecords() {
             // Загрузка всех необходимых данных параллельно
@@ -146,6 +134,7 @@
                 // Сохраняем данные для использования
                 customersData = customers;
                 servicesData = services;
+                allRecords = records;
                 // Отображаем записи
                 displayRecords(records);
             })
@@ -154,6 +143,32 @@
                 recordsList.innerHTML = '<div class="no-records">Ошибка загрузки записей</div>';
             });
         }
+
+        // Функция для фильтрации записей по дате
+        function filterRecordsByDate(selectedDate) {
+            if (!selectedDate) {
+                // Если дата не выбрана, показываем все записи
+                displayRecords(allRecords);
+                return;
+            }
+
+            const filteredRecords = allRecords.filter(record => {
+                if (!record.date) return false;
+                
+                const recordDate = new Date(record.date);
+                const filterDate = new Date(selectedDate);
+                
+                // Сравниваем только даты (игнорируем время)
+                return recordDate.toDateString() === filterDate.toDateString();
+            });
+
+            displayRecords(filteredRecords);
+        }
+
+        // Обработчик изменения даты в фильтре
+        dateFilter.addEventListener('change', function() {
+            filterRecordsByDate(this.value);
+        });
 
         // Функция для получения данных клиента по ID
         function getCustomerName(customerId) {
