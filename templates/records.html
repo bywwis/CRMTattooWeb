@@ -463,7 +463,9 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Ошибка сервера');
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
                 }
                 return response.json();
             })
@@ -475,7 +477,17 @@
             })
             .catch(error => {
                 console.error('Ошибка при удалении записи:', error);
-                alert('Ошибка при удалении записи: ' + error.message);
+
+                // Проверяем, содержит ли ошибка информацию о внешних ключах
+                if (error.message.includes('foreign key') ||
+                    error.message.includes('внешний ключ') ||
+                    error.message.includes('связан') ||
+                    error.message.includes('cannot delete') ||
+                    error.message.includes('нарушает')) {
+                    alert('Нельзя удалить запись, так как на нее есть ссылки в других таблицах!');
+                } else {
+                    alert('Нельзя удалить запись, так как на нее есть ссылки в других таблицах!' + error.message);
+                }
             });
         });
 

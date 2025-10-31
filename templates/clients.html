@@ -46,9 +46,11 @@
 <!-- Модальное окно -->
 <div id="modal" class="modal">
     <div class="modal-content">
-        <h2>Клиент</h2>
+        <h2 id="modalTitle">Клиент</h2>
 
         <form class="modal-form">
+            <input type="hidden" id="clientId">
+
             <div class="form-group">
                 <label for="clientName">Имя</label>
                 <input type="text" id="clientName">
@@ -86,6 +88,15 @@
         margin: 0 4% 0 auto;
         padding: 20px;
     }
+
+    .record-card {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .record-card:hover {
+        background-color: #f5f5f5;
+    }
 </style>
 
 <script>
@@ -96,52 +107,39 @@
         const deleteBtn = document.getElementById('deleteBtn');
         const telephoneInput = document.getElementById('clientTelephone');
         const clientsList = document.getElementById('clientsList');
+        const clientIdInput = document.getElementById('clientId');
+        const modalTitle = document.getElementById('modalTitle');
+
+        let currentClientId = null;
 
         // Функция для загрузки клиентов с сервера
         function loadClients() {
-            // Отправка GET запрос на endpoint /customers
             fetch('/customers')
                 .then(response => {
-                    // Проверка, что ответ от сервера успешный
                     if (!response.ok) {
                         throw new Error('Ошибка загрузки клиентов');
                     }
-                    // Преобразование ответа в JSON формат
                     return response.json();
                 })
                 .then(customers => {
-                    // Если данные успешно получены, передача их в функцию отображения
                     displayClients(customers);
                 })
                 .catch(error => {
-                    // Обработка ошибки (сетевые проблемы, ошибки сервера и т.д.)
                     console.error('Ошибка при загрузке клиентов:', error);
-                    // Показ сообщения об ошибке в интерфейсе
                     clientsList.innerHTML = '<div class="no-records">Ошибка загрузки клиентов</div>';
                 });
         }
 
         // Функция для отображения клиентов в списке
         function displayClients(customers) {
-            // Проверка, есть ли клиенты в полученном массиве
             if (customers.length === 0) {
-                // Если массив пустой, показ сообщения
                 clientsList.innerHTML = '<div class="no-records">Записей нет.</div>';
                 return;
             }
 
-            // Создание переменной для накопления HTML разметки
             let html = '';
 
-            // Прохождение по каждому клиенту в массиве customers
             customers.forEach((customer, index) => {
-                // Для каждого клиента создание HTML карточки:
-                // - data-client-id: уникальный идентификатор клиента из базы данных
-                // - record-number: порядковый номер
-                // - record-name: имя клиента
-                // - record-last: фамилия клиента
-                // - record-middle: отчество клиента
-                // - record-telephone: телефон клиента
                 html += `
                     <div class="record-card" data-client-id="${customer.ID}">
                         <div class="record-content">
@@ -157,22 +155,82 @@
                 `;
             });
 
-            // Вставление сгенерированной HTML разметку в контейнер списка клиентов
             clientsList.innerHTML = html;
+
+            // Добавляем обработчики двойного клика
+            addDoubleClickHandlers();
+        }
+
+        // Функция для добавления обработчиков двойного клика
+        function addDoubleClickHandlers() {
+            const clientCards = document.querySelectorAll('.record-card[data-client-id]');
+
+            clientCards.forEach(card => {
+                card.addEventListener('dblclick', function() {
+                    const clientId = this.getAttribute('data-client-id');
+                    openEditModal(clientId);
+                });
+            });
+        }
+
+        // Функция для открытия модального окна в режиме редактирования
+        function openEditModal(clientId) {
+            currentClientId = clientId;
+
+            fetch(`/customers/${clientId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Клиент не найден');
+                    }
+                    return response.json();
+                })
+                .then(client => {
+                    // Заполняем форму данными клиента
+                    clientIdInput.value = client.ID;
+                    document.getElementById('clientName').value = client.name || '';
+                    document.getElementById('clientLast').value = client.surname || '';
+                    document.getElementById('clientMiddle').value = client.patronymic || '';
+                    document.getElementById('clientTelephone').value = client.phone || '';
+
+                    // Обновляем заголовок
+                    modalTitle.textContent = 'Редактирование клиента';
+
+                    // Показываем кнопку удаления
+                    deleteBtn.style.display = 'block';
+
+                    // Открываем модальное окно
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке клиента:', error);
+                    alert('Ошибка при загрузке клиента: ' + error.message);
+                });
+        }
+
+        // Функция для открытия модального окна в режиме создания
+        function openCreateModal() {
+            currentClientId = null;
+            modalTitle.textContent = 'Новый клиент';
+            deleteBtn.style.display = 'none';
+
+            // Очищаем форму
+            clientIdInput.value = '';
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientLast').value = '';
+            document.getElementById('clientMiddle').value = '';
+            document.getElementById('clientTelephone').value = '';
+
+            // Открываем модальное окно
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
         // Функция для валидации телефона (только цифры)
         function validatePhone(input) {
-            // Сохраняем позицию курсора
             const cursorPosition = input.selectionStart;
-
-            // Удаляем все символы, кроме цифр
             const newValue = input.value.replace(/[^\d]/g, '');
-
-            // Устанавливаем новое значение
             input.value = newValue;
-
-            // Восстанавливаем позицию курсора
             input.setSelectionRange(cursorPosition, cursorPosition);
         }
 
@@ -185,44 +243,35 @@
         function closeModal() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
-            document.getElementById('clientName').value = '';
-            document.getElementById('clientLast').value = '';
-            document.getElementById('clientMiddle').value = '';
-            document.getElementById('clientTelephone').value = '';
+            currentClientId = null;
         }
 
-        // Открытие модального окна
-        openModalBtn.addEventListener('click', function() {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        });
+        // Открытие модального окна для создания
+        openModalBtn.addEventListener('click', openCreateModal);
 
-        // Сохранение и закрытие
+        // Сохранение клиента
         saveBtn.addEventListener('click', function() {
             const surname = document.getElementById('clientLast').value;
             const name = document.getElementById('clientName').value;
             const patronymic = document.getElementById('clientMiddle').value;
             const phone = document.getElementById('clientTelephone').value;
 
-            // Проверяем, что все обязательные поля заполнены
+            // Проверяем обязательные поля
             if (!surname || !name || !phone) {
                 alert('Заполните фамилию, имя и телефон!');
                 return;
             }
 
-            // Проверяем, что телефон состоит только из цифр
             if (!/^\d+$/.test(phone)) {
                 alert('Телефон должен содержать только цифры!');
                 return;
             }
 
-            // Проверяем минимальную длину телефона
             if (phone.length < 10) {
                 alert('Телефон должен содержать не менее 10 цифр!');
                 return;
             }
 
-            // Собираем данные из формы
             const customerData = {
                 surname: surname,
                 name: name,
@@ -230,9 +279,18 @@
                 phone: phone
             };
 
+            let url = '/customers';
+            let method = 'POST';
+
+            // Если редактируем существующего клиента
+            if (currentClientId) {
+                url = `/customers/${currentClientId}`;
+                method = 'PUT';
+            }
+
             // Отправляем данные на сервер
-            fetch('/customers', {
-                method: 'POST',
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -240,13 +298,15 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Ошибка сервера');
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
                 }
                 return response.json();
             })
             .then(data => {
                 console.log('Клиент сохранен:', data);
-                alert('Клиент успешно добавлен!');
+                alert('Клиент успешно сохранен!');
                 closeModal();
                 loadClients();
             })
@@ -256,9 +316,56 @@
             });
         });
 
-        // Закрытие
+        // Удаление клиента
+        // Удаление клиента
         deleteBtn.addEventListener('click', function() {
-            closeModal();
+            if (!currentClientId) {
+                alert('Нет клиента для удаления');
+                return;
+            }
+
+            if (!confirm('Вы уверены, что хотите удалить этого клиента?')) {
+                return;
+            }
+
+            fetch(`/customers/${currentClientId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Клиент удален:', data);
+                alert('Клиент успешно удален!');
+                closeModal();
+                loadClients();
+            })
+            .catch(error => {
+                console.error('Ошибка при удалении:', error);
+
+                // Проверяем, содержит ли ошибка информацию о связанных записях
+                if (error.message.includes('связанные записи') ||
+                    error.message.includes('foreign key') ||
+                    error.message.includes('внешний ключ') ||
+                    error.message.includes('нельзя удалить') ||
+                    error.message.includes('записи')) {
+                    alert('Нельзя удалить клиента, у которого есть записи на услуги!');
+                } else {
+                    alert('Нельзя удалить клиента, у которого есть записи на услуги!' + error.message);
+                }
+            });
+        });
+
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
         });
 
         loadClients();

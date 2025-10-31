@@ -16,9 +16,11 @@
 <!-- Модальное окно -->
 <div id="modal" class="modal">
     <div class="modal-content">
-        <h2>Прайс</h2>
+        <h2 id="modalTitle">Прайс</h2>
 
         <form class="modal-form">
+            <input type="hidden" id="serviceId">
+
             <div class="form-group">
                 <label for="name">Название</label>
                 <input type="text" id="name">
@@ -45,50 +47,39 @@
         const deleteBtn = document.getElementById('deleteBtn');
         const priceInput = document.getElementById('price');
         const servicesList = document.getElementById('servicesList');
+        const serviceIdInput = document.getElementById('serviceId');
+        const modalTitle = document.getElementById('modalTitle');
+
+        let currentServiceId = null;
 
         // Функция для загрузки услуг с сервера
         function loadServices() {
-            // Отправка GET запроса на endpoint /services
             fetch('/services')
                 .then(response => {
-                    // Проверка, что ответ от сервера успешный
                     if (!response.ok) {
                         throw new Error('Ошибка загрузки услуг');
                     }
-                    // Преобразование ответа в JSON формат
                     return response.json();
                 })
                 .then(services => {
-                    // Если данные успешно получены, передача их в функцию отображения
                     displayServices(services);
                 })
                 .catch(error => {
-                    // Обработка ошибки (сетевые проблемы, ошибки сервера и т.д.)
                     console.error('Ошибка при загрузке услуг:', error);
-                    // Показ сообщения об ошибке в интерфейсе
                     servicesList.innerHTML = '<div class="no-records">Ошибка загрузки данных</div>';
                 });
         }
 
         // Функция для отображения услуг в списке
         function displayServices(services) {
-            // Проверка, есть ли записи в полученном массиве
             if (services.length === 0) {
-                // Если массив пустой, показ сообщения "Услуг нет"
                 servicesList.innerHTML = '<div class="no-records">Записей нет.</div>';
                 return;
             }
 
-            // Создание переменной для накопления HTML разметки
             let html = '';
 
-            // Прохождение по каждой услуге в массиве services
             services.forEach((service, index) => {
-                // Для каждой услуги создание HTML карточки:
-                // - data-service-id: уникальный идентификатор услуги из базы данных
-                // - record-number: порядковый номер
-                // - record-name: название услуги
-                // - record-price: цена услуги
                 html += `
                     <div class="record-card" data-service-id="${service.ID}">
                         <div class="record-content">
@@ -102,22 +93,79 @@
                 `;
             });
 
-            // Вставление сгенерированной HTML разметки в контейнер списка
             servicesList.innerHTML = html;
+
+            // Добавляем обработчики двойного клика
+            addDoubleClickHandlers();
+        }
+
+        // Функция для добавления обработчиков двойного клика
+        function addDoubleClickHandlers() {
+            const serviceCards = document.querySelectorAll('.record-card[data-service-id]');
+
+            serviceCards.forEach(card => {
+                card.addEventListener('dblclick', function() {
+                    const serviceId = this.getAttribute('data-service-id');
+                    openEditModal(serviceId);
+                });
+            });
+        }
+
+        // Функция для открытия модального окна в режиме редактирования
+        function openEditModal(serviceId) {
+            currentServiceId = serviceId;
+
+            // Загружаем данные услуги
+            fetch(`/services/${serviceId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Услуга не найдена');
+                    }
+                    return response.json();
+                })
+                .then(service => {
+                    // Заполняем форму данными
+                    serviceIdInput.value = service.ID;
+                    document.getElementById('name').value = service.name || '';
+                    document.getElementById('price').value = service.price || '';
+
+                    // Обновляем заголовок
+                    modalTitle.textContent = 'Редактирование услуги';
+
+                    // Показываем кнопку удаления
+                    deleteBtn.style.display = 'block';
+
+                    // Открываем модальное окно
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке услуги:', error);
+                    alert('Ошибка при загрузке услуги: ' + error.message);
+                });
+        }
+
+        // Функция для открытия модального окна в режиме создания
+        function openCreateModal() {
+            currentServiceId = null;
+            modalTitle.textContent = 'Новая услуга';
+            deleteBtn.style.display = 'none';
+
+            // Очищаем форму
+            serviceIdInput.value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('price').value = '';
+
+            // Открываем модальное окно
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
         // Функция для валидации цены (только цифры)
         function validatePrice(input) {
-            // Сохраняем позицию курсора
             const cursorPosition = input.selectionStart;
-            
-            // Удаляем все символы, кроме цифр
             const newValue = input.value.replace(/[^\d]/g, '');
-            
-            // Устанавливаем новое значение
             input.value = newValue;
-            
-            // Восстанавливаем позицию курсора
             input.setSelectionRange(cursorPosition, cursorPosition);
         }
 
@@ -130,15 +178,11 @@
         function closeModal() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
-            document.getElementById('name').value = '';
-            document.getElementById('price').value = '';
+            currentServiceId = null;
         }
 
-        // Открытие модального окна
-        openModalBtn.addEventListener('click', function() {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        });
+        // Открытие модального окна для создания
+        openModalBtn.addEventListener('click', openCreateModal);
 
         // Сохранение данных услуги
         saveBtn.addEventListener('click', function() {
@@ -160,12 +204,21 @@
             // Собираем данные из формы
             const serviceData = {
                 name: name,
-                price: parseInt(price) // Преобразуем в число
+                price: parseInt(price)
             };
 
+            let url = '/services';
+            let method = 'POST';
+
+            // Если редактируем существующую услугу
+            if (currentServiceId) {
+                url = `/services/${currentServiceId}`;
+                method = 'PUT';
+            }
+
             // Отправляем данные на сервер
-            fetch('/services', {
-                method: 'POST',
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -173,13 +226,15 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Ошибка сервера');
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
                 }
                 return response.json();
             })
             .then(data => {
                 console.log('Услуга сохранена:', data);
-                alert('Услуга успешно добавлена!');
+                alert('Услуга успешно сохранена!');
                 closeModal();
                 loadServices();
             })
@@ -189,9 +244,56 @@
             });
         });
 
-        // Закрытие по кнопке Удалить
+        // Удаление услуги
         deleteBtn.addEventListener('click', function() {
-            closeModal();
+            if (!currentServiceId) {
+                alert('Нет услуги для удаления');
+                return;
+            }
+
+            if (!confirm('Вы уверены, что хотите удалить эту услугу?')) {
+                return;
+            }
+
+            fetch(`/services/${currentServiceId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Услуга удалена:', data);
+                alert('Услуга успешно удалена!');
+                closeModal();
+                loadServices();
+            })
+            .catch(error => {
+                console.error('Ошибка при удалении:', error);
+
+                // Проверяем, содержит ли ошибка информацию о связанных записях
+                if (error.message.includes('связанные записи') ||
+                    error.message.includes('foreign key') ||
+                    error.message.includes('внешний ключ') ||
+                    error.message.includes('нельзя удалить') ||
+                    error.message.includes('материалы') ||
+                    error.message.includes('записи')) {
+                    alert('Нельзя удалить услугу, у которой есть связанные записи или материалы!');
+                } else {
+                    alert('Нельзя удалить услугу, у которой есть связанные записи или материалы!' + error.message);
+                }
+            });
+        });
+
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
         });
 
         loadServices();

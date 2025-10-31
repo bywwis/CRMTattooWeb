@@ -17,9 +17,11 @@
 <!-- Модальное окно -->
 <div id="modal" class="modal">
     <div class="modal-content">
-        <h2>Расход</h2>
+        <h2 id="modalTitle">Расход</h2>
 
         <form class="modal-form">
+            <input type="hidden" id="expenseId">
+
             <div class="form-group">
                 <label for="service">Услуга</label>
                 <select id="service">
@@ -64,23 +66,23 @@
         const materialSelect = document.getElementById('material');
         const unitSelect = document.getElementById('unit');
         const expensesList = document.getElementById('expensesList');
+        const expenseIdInput = document.getElementById('expenseId');
+        const modalTitle = document.getElementById('modalTitle');
 
-        servicesData = [];
-        materialsData = [];
+        let servicesData = [];
+        let materialsData = [];
+        let currentExpenseId = null;
 
         // Функция для загрузки расходных материалов с сервера
         function loadExpenses() {
-            // Сначала загрузка услуги и материалы, потом расходы
             Promise.all([
                 fetch('/services').then(r => r.json()),
                 fetch('/supplies').then(r => r.json()),
                 fetch('/services_supplies').then(r => r.json())
             ])
             .then(([services, supplies, expenses]) => {
-                // Сохранение данных для использования в отображении
                 servicesData = services;
                 materialsData = supplies;
-                // Отображение расходов
                 displayExpenses(expenses);
             })
             .catch(error => {
@@ -103,23 +105,17 @@
 
         // Функция для отображения расходных материалов в списке
         function displayExpenses(expenses) {
-            // Проверка, есть ли записи в полученном массиве
             if (expenses.length === 0) {
-                // Если массив пустой, показ сообщения "Записей нет"
                 expensesList.innerHTML = '<div class="no-records">Записей нет.</div>';
                 return;
             }
 
-            // Создание переменной для накопления HTML разметки
             let html = '';
 
-            // Прохождение по каждой записи в массиве expenses
             expenses.forEach((expense, index) => {
-                // Получаем названия вместо ID
                 const serviceName = getServiceName(expense.id_services);
                 const materialName = getMaterialName(expense.id_supplies);
 
-                // Для каждой записи создание HTML карточки:
                 html += `
                     <div class="record-card" data-expense-id="${expense.ID}">
                         <div class="record-content">
@@ -135,8 +131,84 @@
                 `;
             });
 
-            // Вставление сгенерированной HTML разметки в контейнер списка
             expensesList.innerHTML = html;
+
+            // Добавляем обработчики двойного клика
+            addDoubleClickHandlers();
+        }
+
+        // Функция для добавления обработчиков двойного клика
+        function addDoubleClickHandlers() {
+            const expenseCards = document.querySelectorAll('.record-card[data-expense-id]');
+
+            expenseCards.forEach(card => {
+                card.addEventListener('dblclick', function() {
+                    const expenseId = this.getAttribute('data-expense-id');
+                    openEditModal(expenseId);
+                });
+            });
+        }
+
+        // Функция для открытия модального окна в режиме редактирования
+        function openEditModal(expenseId) {
+            currentExpenseId = expenseId;
+
+            // Загружаем данные расходного материала
+            fetch(`/services_supplies/${expenseId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Расходный материал не найден');
+                    }
+                    return response.json();
+                })
+                .then(expense => {
+                    // Заполняем форму данными
+                    expenseIdInput.value = expense.ID;
+                    serviceSelect.value = expense.id_services;
+                    materialSelect.value = expense.id_supplies;
+                    document.getElementById('quantity').value = expense.material_consumption;
+                    unitSelect.value = expense.units_measurement;
+
+                    // Обновляем заголовок
+                    modalTitle.textContent = 'Редактирование расхода';
+
+                    // Показываем кнопку удаления
+                    deleteBtn.style.display = 'block';
+
+                    // Загружаем списки и открываем модальное окно
+                    loadServices();
+                    loadMaterials();
+                    loadUnits();
+
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке расходного материала:', error);
+                    alert('Ошибка при загрузке расходного материала: ' + error.message);
+                });
+        }
+
+        // Функция для открытия модального окна в режиме создания
+        function openCreateModal() {
+            currentExpenseId = null;
+            modalTitle.textContent = 'Новый расход';
+            deleteBtn.style.display = 'none';
+
+            // Очищаем форму
+            expenseIdInput.value = '';
+            serviceSelect.value = '';
+            materialSelect.value = '';
+            document.getElementById('quantity').value = '';
+            unitSelect.value = '';
+
+            // Загружаем списки и открываем модальное окно
+            loadServices();
+            loadMaterials();
+            loadUnits();
+
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
         // Статический список единиц измерения
@@ -155,10 +227,10 @@
                 })
                 .then(services => {
                     serviceSelect.innerHTML = '<option value="">Выберите услугу</option>';
-                    
+
                     services.forEach(service => {
                         const option = document.createElement('option');
-                        option.value = service.ID; // ID услуги
+                        option.value = service.ID;
                         option.textContent = `${service.name} - ${service.price} руб.`;
                         serviceSelect.appendChild(option);
                     });
@@ -180,10 +252,10 @@
                 })
                 .then(materials => {
                     materialSelect.innerHTML = '<option value="">Выберите материал</option>';
-                    
+
                     materials.forEach(material => {
                         const option = document.createElement('option');
-                        option.value = material.ID; // ID материала
+                        option.value = material.ID;
                         option.textContent = `${material.name} - ${material.price} руб.`;
                         materialSelect.appendChild(option);
                     });
@@ -197,7 +269,7 @@
         // Функция для загрузки единиц измерения (статический список)
         function loadUnits() {
             unitSelect.innerHTML = '<option value="">Выберите единицу измерения</option>';
-            
+
             units.forEach(unit => {
                 const option = document.createElement('option');
                 option.value = unit;
@@ -210,37 +282,18 @@
         function closeModal() {
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
-            // Очищаем форму при закрытии
-            serviceSelect.value = '';
-            materialSelect.value = '';
-            unitSelect.value = '';
-            document.getElementById('quantity').value = '';
+            currentExpenseId = null;
         }
 
-        // Функция для открытия модального окна
-        function openModal() {
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            // Загружаем данные при открытии модального окна
-            loadServices();
-            loadMaterials();
-            loadUnits();
-        }
-
-        // Открытие модального окна
-        openModalBtn.addEventListener('click', openModal);
+        // Открытие модального окна для создания
+        openModalBtn.addEventListener('click', openCreateModal);
 
         // Сохранение данных расходных материалов
         saveBtn.addEventListener('click', function() {
-            // Получаем значения
             const serviceValue = serviceSelect.value;
             const materialValue = materialSelect.value;
             const quantityValue = document.getElementById('quantity').value;
             const unitValue = unitSelect.value;
-
-            console.log('Сырые данные:', {
-                serviceValue, materialValue, quantityValue, unitValue
-            });
 
             // Валидация данных
             if (!serviceValue || !materialValue || !quantityValue || !unitValue) {
@@ -248,7 +301,6 @@
                 return;
             }
 
-            // Формируем данные для отправки
             const expenseData = {
                 id_services: parseInt(serviceValue),
                 id_supplies: parseInt(materialValue),
@@ -256,9 +308,6 @@
                 units_measurement: unitValue
             };
 
-            console.log('Данные для отправки:', expenseData);
-
-            // Проверка данных
             if (isNaN(expenseData.id_services) || isNaN(expenseData.id_supplies) || isNaN(expenseData.material_consumption)) {
                 alert('Ошибка в данных! Проверьте правильность введенных значений.');
                 return;
@@ -269,16 +318,24 @@
                 return;
             }
 
+            let url = '/services_supplies';
+            let method = 'POST';
+
+            // Если редактируем существующий расход
+            if (currentExpenseId) {
+                url = `/services_supplies/${currentExpenseId}`;
+                method = 'PUT';
+            }
+
             // Отправляем данные на сервер
-            fetch('/services_supplies', {
-                method: 'POST',
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(expenseData)
             })
             .then(response => {
-                console.log('Статус ответа:', response.status);
                 if (!response.ok) {
                     return response.text().then(text => {
                         throw new Error(text || 'Ошибка сервера');
@@ -290,7 +347,6 @@
                 console.log('Расход материала сохранен:', data);
                 alert('Данные успешно сохранены!');
                 closeModal();
-                location.reload();
                 loadExpenses();
             })
             .catch(error => {
@@ -299,10 +355,69 @@
             });
         });
 
-        // Закрытие по кнопке Удалить
+        // Удаление расходного материала
         deleteBtn.addEventListener('click', function() {
-            closeModal();
+            if (!currentExpenseId) {
+                alert('Нет расхода для удаления');
+                return;
+            }
+
+            if (!confirm('Вы уверены, что хотите удалить этот расход?')) {
+                return;
+            }
+
+            fetch(`/services_supplies/${currentExpenseId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text || 'Ошибка сервера');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Расход удален:', data);
+                alert('Расход успешно удален!');
+                closeModal();
+                loadExpenses();
+            })
+            .catch(error => {
+                console.error('Ошибка при удалении:', error);
+
+                // Проверяем, содержит ли ошибка информацию о связанных записях
+                if (error.message.includes('foreign key') ||
+                    error.message.includes('внешний ключ') ||
+                    error.message.includes('связан') ||
+                    error.message.includes('cannot delete') ||
+                    error.message.includes('нарушает')) {
+                    alert('Нельзя удалить расход, так как на него есть ссылки в других таблицах!');
+                } else {
+                    alert('Нельзя удалить расход, так как на него есть ссылки в других таблицах!' + error.message);
+                }
+            });
         });
+
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Добавляем стили для курсора при наведении
+        const style = document.createElement('style');
+        style.textContent = `
+            .record-card {
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+            .record-card:hover {
+                background-color: #f5f5f5;
+            }
+        `;
+        document.head.appendChild(style);
 
         loadExpenses();
     });
