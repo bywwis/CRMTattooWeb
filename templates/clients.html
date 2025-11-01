@@ -6,26 +6,12 @@
     <!-- Фильтры с выпадающими списками -->
     <div class="filters">
         <div class="filter-group">
-            <select class="filter-select">
-                <option value="">Август</option>
-                <option value="january">Январь</option>
-                <option value="february">Февраль</option>
-                <option value="march">Март</option>
-                <option value="april">Апрель</option>
-                <option value="may">Май</option>
-                <option value="june">Июнь</option>
-                <option value="july">Июль</option>
-                <option value="august">Август</option>
-                <option value="september">Сентябрь</option>
-                <option value="october">Октябрь</option>
-                <option value="november">Ноябрь</option>
-                <option value="december">Декабрь</option>
-            </select>
+            <input type="date" class="filter-select" id="dateFilter">
         </div>
 
         <div class="filter-group">
-            <select class="filter-select">
-                <option value="">Месяц</option>
+            <select class="filter-select" id="periodFilter">
+                <option value="">Период</option>
                 <option value="day">День</option>
                 <option value="month">Месяц</option>
                 <option value="year">Год</option>
@@ -109,31 +95,168 @@
         const clientsList = document.getElementById('clientsList');
         const clientIdInput = document.getElementById('clientId');
         const modalTitle = document.getElementById('modalTitle');
+        const dateFilter = document.getElementById('dateFilter');
+        const periodFilter = document.getElementById('periodFilter');
 
         let currentClientId = null;
+        let allClients = []; // Все загруженные клиенты с датами записей
 
-        // Функция для загрузки клиентов с сервера
+        // Функция для загрузки клиентов с сервера вместе с их записями
         function loadClients() {
-            fetch('/customers')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Ошибка загрузки клиентов');
-                    }
-                    return response.json();
-                })
-                .then(customers => {
-                    displayClients(customers);
-                })
-                .catch(error => {
-                    console.error('Ошибка при загрузке клиентов:', error);
-                    clientsList.innerHTML = '<div class="no-records">Ошибка загрузки клиентов</div>';
+            Promise.all([
+                fetch('/customers').then(r => r.json()),
+                fetch('/records').then(r => r.json())
+            ])
+            .then(([customers, records]) => {
+                // Обогащаем клиентов данными о всех записях
+                const clientsWithRecords = customers.map(customer => {
+                    // Находим все записи этого клиента
+                    const clientRecords = records.filter(record => 
+                        record.id_customers === customer.ID
+                    );
+                    
+                    return {
+                        ...customer,
+                        records: clientRecords,
+                        has_records: clientRecords.length > 0
+                    };
                 });
+
+                // Сортируем клиентов по датам всех их записей
+                clientsWithRecords.sort((a, b) => {
+                    // Клиенты с записями выше тех, у кого нет записей
+                    if (a.has_records && !b.has_records) return -1;
+                    if (!a.has_records && b.has_records) return 1;
+                    if (!a.has_records && !b.has_records) return 0;
+                    
+                    // Сортируем по самой последней записи среди всех записей клиента
+                    const aLatestRecord = getLatestRecordDate(a.records);
+                    const bLatestRecord = getLatestRecordDate(b.records);
+                    
+                    return new Date(bLatestRecord) - new Date(aLatestRecord);
+                });
+
+                allClients = clientsWithRecords;
+                displayClients(allClients);
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке данных:', error);
+                clientsList.innerHTML = '<div class="no-records">Ошибка загрузки клиентов</div>';
+            });
         }
+
+        // Функция для получения самой последней даты записи из всех записей клиента
+        function getLatestRecordDate(records) {
+            if (!records || records.length === 0) return null;
+            
+            const sortedRecords = records
+                .filter(record => record.date)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            return sortedRecords.length > 0 ? sortedRecords[0].date : null;
+        }
+
+        // Функция для фильтрации клиентов по дате записи
+        function filterClientsByDate(selectedDate) {
+            if (!selectedDate) {
+                displayClients(allClients);
+                return;
+            }
+
+            const filteredClients = allClients.filter(client => {
+                // Проверяем, есть ли у клиента записи на выбранную дату
+                return client.records.some(record => {
+                    if (!record.date) return false;
+                    
+                    const recordDate = new Date(record.date);
+                    const filterDate = new Date(selectedDate);
+                    
+                    return recordDate.toDateString() === filterDate.toDateString();
+                });
+            });
+
+            displayClients(filteredClients);
+        }
+
+        // Функция для фильтрации по периоду от выбранной даты
+        function filterClientsByPeriod(period, selectedDate) {
+            if (!period || !selectedDate) {
+                displayClients(allClients);
+                return;
+            }
+
+            const baseDate = new Date(selectedDate);
+            const filteredClients = allClients.filter(client => {
+                // Проверяем, есть ли у клиента записи за выбранный период от выбранной даты
+                return client.records.some(record => {
+                    if (!record.date) return false;
+                    
+                    const recordDate = new Date(record.date);
+                    
+                    switch(period) {
+                        case 'day':
+                            // Все записи за тот же день, что и выбранная дата
+                            return recordDate.toDateString() === baseDate.toDateString();
+                        case 'month':
+                            // Все записи за тот же месяц и год, что и выбранная дата
+                            return recordDate.getMonth() === baseDate.getMonth() && 
+                                   recordDate.getFullYear() === baseDate.getFullYear();
+                        case 'year':
+                            // Все записи за тот же год, что и выбранная дата
+                            return recordDate.getFullYear() === baseDate.getFullYear();
+                        default:
+                            return true;
+                    }
+                });
+            });
+
+            displayClients(filteredClients);
+        }
+
+        // Обработчик изменения даты в фильтре
+        dateFilter.addEventListener('change', function() {
+            const selectedDate = this.value;
+            const selectedPeriod = periodFilter.value;
+            
+            if (selectedPeriod && selectedDate) {
+                // Если выбран и период и дата - фильтруем по периоду от выбранной даты
+                filterClientsByPeriod(selectedPeriod, selectedDate);
+            } else if (selectedDate) {
+                // Если выбрана только дата - фильтруем по конкретной дате
+                filterClientsByDate(selectedDate);
+            } else {
+                // Если ничего не выбрано - показываем всех
+                displayClients(allClients);
+            }
+        });
+
+        // Обработчик изменения периода
+        periodFilter.addEventListener('change', function() {
+            const selectedPeriod = this.value;
+            const selectedDate = dateFilter.value;
+            
+            if (selectedPeriod && selectedDate) {
+                // Если выбран и период и дата - фильтруем по периоду от выбранной даты
+                filterClientsByPeriod(selectedPeriod, selectedDate);
+            } else if (selectedPeriod) {
+                // Если выбран только период, но не выбрана дата - сбрасываем период
+                alert('Сначала выберите дату для фильтрации по периоду');
+                this.value = '';
+                displayClients(allClients);
+            } else {
+                // Если период сброшен - показываем всех или фильтруем по дате если она выбрана
+                if (selectedDate) {
+                    filterClientsByDate(selectedDate);
+                } else {
+                    displayClients(allClients);
+                }
+            }
+        });
 
         // Функция для отображения клиентов в списке
         function displayClients(customers) {
             if (customers.length === 0) {
-                clientsList.innerHTML = '<div class="no-records">Записей нет.</div>';
+                clientsList.innerHTML = '<div class="no-records">Клиентов не найдено.</div>';
                 return;
             }
 
@@ -316,7 +439,6 @@
             });
         });
 
-        // Удаление клиента
         // Удаление клиента
         deleteBtn.addEventListener('click', function() {
             if (!currentClientId) {
