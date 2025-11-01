@@ -7,11 +7,11 @@
     <!-- Фильтры с выпадающими списками -->
     <div class="filters">
         <div class="filter-group">
-            <input type="date" class="filter-select">
+            <input type="date" class="filter-select" id="dateFilter">
         </div>
 
         <div class="filter-group">
-            <select class="filter-select">
+            <select class="filter-select" id="periodFilter">
                 <option value="">Период</option>
                 <option value="day">День</option>
                 <option value="month">Месяц</option>
@@ -26,18 +26,6 @@
     <!-- Список записей -->
     <div class="records-list" id="recordsList">
         <div class="no-records">Записей нет.</div>
-        <div class="record-date">24.08.2025</div>
-        <div class="record-card" data-record-id="1">
-            <div class="record-content">
-                <div class="record-number">1.</div>
-                <div class="record-details">
-                    <div class="record-name">Имя клиента</div>
-                    <div class="record-tattoo">Название тату</div>
-                    <div class="record-service">Название услуги</div>
-                    <div class="record-time">14:30</div>
-                </div>
-            </div>
-        </div>
     </div>
 
 </div>
@@ -115,7 +103,8 @@
         const modalTitle = document.getElementById('modalTitle');
         const tattooNameInput = document.getElementById('tattooName');
         const dateInput = document.getElementById('date');
-        const dateFilter = document.querySelector('input[type="date"]');
+        const dateFilter = document.getElementById('dateFilter');
+        const periodFilter = document.getElementById('periodFilter');
 
         // Переменные для хранения данных
         let customersData = [];
@@ -165,9 +154,76 @@
             displayRecords(filteredRecords);
         }
 
+        // Функция для фильтрации записей по периоду от выбранной даты
+        function filterRecordsByPeriod(period, selectedDate) {
+            if (!period || !selectedDate) {
+                displayRecords(allRecords);
+                return;
+            }
+
+            const baseDate = new Date(selectedDate);
+            const filteredRecords = allRecords.filter(record => {
+                if (!record.date) return false;
+                
+                const recordDate = new Date(record.date);
+                
+                switch(period) {
+                    case 'day':
+                        // Все записи за тот же день, что и выбранная дата
+                        return recordDate.toDateString() === baseDate.toDateString();
+                    case 'month':
+                        // Все записи за тот же месяц и год, что и выбранная дата
+                        return recordDate.getMonth() === baseDate.getMonth() && 
+                               recordDate.getFullYear() === baseDate.getFullYear();
+                    case 'year':
+                        // Все записи за тот же год, что и выбранная дата
+                        return recordDate.getFullYear() === baseDate.getFullYear();
+                    default:
+                        return true;
+                }
+            });
+
+            displayRecords(filteredRecords);
+        }
+
         // Обработчик изменения даты в фильтре
         dateFilter.addEventListener('change', function() {
-            filterRecordsByDate(this.value);
+            const selectedDate = this.value;
+            const selectedPeriod = periodFilter.value;
+            
+            if (selectedPeriod && selectedDate) {
+                // Если выбран и период и дата - фильтруем по периоду от выбранной даты
+                filterRecordsByPeriod(selectedPeriod, selectedDate);
+            } else if (selectedDate) {
+                // Если выбрана только дата - фильтруем по конкретной дате
+                filterRecordsByDate(selectedDate);
+            } else {
+                // Если ничего не выбрано - показываем все записи
+                displayRecords(allRecords);
+            }
+        });
+
+        // Обработчик изменения периода
+        periodFilter.addEventListener('change', function() {
+            const selectedPeriod = this.value;
+            const selectedDate = dateFilter.value;
+            
+            if (selectedPeriod && selectedDate) {
+                // Если выбран и период и дата - фильтруем по периоду от выбранной даты
+                filterRecordsByPeriod(selectedPeriod, selectedDate);
+            } else if (selectedPeriod) {
+                // Если выбран только период, но не выбрана дата - сбрасываем период
+                alert('Сначала выберите дату для фильтрации по периоду');
+                this.value = '';
+                displayRecords(allRecords);
+            } else {
+                // Если период сброшен - показываем все или фильтруем по дате если она выбрана
+                if (selectedDate) {
+                    filterRecordsByDate(selectedDate);
+                } else {
+                    displayRecords(allRecords);
+                }
+            }
         });
 
         // Функция для получения данных клиента по ID
