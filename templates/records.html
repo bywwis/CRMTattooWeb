@@ -12,8 +12,7 @@
 
         <div class="filter-group">
             <select class="filter-select" id="periodFilter">
-                <option value="">Период</option>
-                <option value="day">День</option>
+                <option value="">День</option>
                 <option value="month">Месяц</option>
                 <option value="year">Год</option>
             </select>
@@ -143,10 +142,10 @@
 
             const filteredRecords = allRecords.filter(record => {
                 if (!record.date) return false;
-                
+
                 const recordDate = new Date(record.date);
                 const filterDate = new Date(selectedDate);
-                
+
                 // Сравниваем только даты (игнорируем время)
                 return recordDate.toDateString() === filterDate.toDateString();
             });
@@ -164,16 +163,16 @@
             const baseDate = new Date(selectedDate);
             const filteredRecords = allRecords.filter(record => {
                 if (!record.date) return false;
-                
+
                 const recordDate = new Date(record.date);
-                
+
                 switch(period) {
                     case 'day':
                         // Все записи за тот же день, что и выбранная дата
                         return recordDate.toDateString() === baseDate.toDateString();
                     case 'month':
                         // Все записи за тот же месяц и год, что и выбранная дата
-                        return recordDate.getMonth() === baseDate.getMonth() && 
+                        return recordDate.getMonth() === baseDate.getMonth() &&
                                recordDate.getFullYear() === baseDate.getFullYear();
                     case 'year':
                         // Все записи за тот же год, что и выбранная дата
@@ -190,7 +189,7 @@
         dateFilter.addEventListener('change', function() {
             const selectedDate = this.value;
             const selectedPeriod = periodFilter.value;
-            
+
             if (selectedPeriod && selectedDate) {
                 // Если выбран и период и дата - фильтруем по периоду от выбранной даты
                 filterRecordsByPeriod(selectedPeriod, selectedDate);
@@ -207,7 +206,7 @@
         periodFilter.addEventListener('change', function() {
             const selectedPeriod = this.value;
             const selectedDate = dateFilter.value;
-            
+
             if (selectedPeriod && selectedDate) {
                 // Если выбран и период и дата - фильтруем по периоду от выбранной даты
                 filterRecordsByPeriod(selectedPeriod, selectedDate);

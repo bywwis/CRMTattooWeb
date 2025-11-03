@@ -3,27 +3,15 @@
 {% block content %}
 <div class="content">
     <h1 class="page-title">Финансы</h1>
-    <!-- Контент страницы финансы -->
+
+    <!-- Фильтры -->
     <div class="filters">
         <div class="filter-group">
-            <select class="filter-select">
-                <option value="january">Январь</option>
-                <option value="february">Февраль</option>
-                <option value="march">Март</option>
-                <option value="april">Апрель</option>
-                <option value="may">Май</option>
-                <option value="june">Июнь</option>
-                <option value="july">Июль</option>
-                <option value="august">Август</option>
-                <option value="september">Сентябрь</option>
-                <option value="october">Октябрь</option>
-                <option value="november">Ноябрь</option>
-                <option value="december">Декабрь</option>
-            </select>
+            <input type="date" class="filter-select" id="dateFilter">
         </div>
 
         <div class="filter-group">
-            <select class="filter-select">
+            <select class="filter-select" id="periodFilter">
                 <option value="day">День</option>
                 <option value="month">Месяц</option>
                 <option value="year">Год</option>
@@ -31,29 +19,601 @@
         </div>
 
         <div class="filter-group">
-            <select class="filter-select">
+            <select class="filter-select" id="reportTypeFilter">
                 <option value="revenue">Выручка</option>
                 <option value="profit">Прибыль</option>
                 <option value="expenses">Расходы</option>
             </select>
         </div>
+
         <div class="filter-group">
-            <select class="filter-select">
+            <select class="filter-select" id="chartTypeFilter">
                 <option value="graph">График</option>
                 <option value="chart">Диаграмма</option>
                 <option value="histogram">Гистограмма</option>
             </select>
+        </div>
+
+         <div class="filter-group">
+            <button class="btn-save" id="saveBtn">
+                Сохранить как PNG
+            </button>
+        </div>
+    </div>
+
+    <!-- Блок с финансовой сводкой -->
+    <div class="finance-summary" id="financeSummary">
+        <div class="summary-card revenue">
+            <h3>Выручка</h3>
+            <div class="amount" id="revenueAmount">0 ₽</div>
+        </div>
+        <div class="summary-card expenses">
+            <h3>Расходы</h3>
+            <div class="amount" id="expensesAmount">0 ₽</div>
+        </div>
+        <div class="summary-card profit">
+            <h3>Прибыль</h3>
+            <div class="amount" id="profitAmount">0 ₽</div>
+        </div>
+    </div>
+
+    <!-- Блок с графиком -->
+    <div class="chart-container">
+        <canvas id="financeChart" width="400" height="200"></canvas>
+    </div>
+
+    <!-- Блок с детализацией -->
+    <div class="details-container">
+        <h3 id="detailsTitle">Детализация</h3>
+        <div class="details-list" id="detailsList">
+            <div class="no-records">Нет данных для отображения</div>
         </div>
     </div>
 </div>
 
 <style>
     .filters {
-    display: flex;
-    justify-content: flex-start;
-    gap: 20px;
-    margin-bottom: 30px;
-    padding: 20px;
+        display: flex;
+        justify-content: flex-start;
+        gap: 20px;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #EDD4C3;
+        border-radius: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-group label {
+        font-size: 12px;
+        font-weight: bold;
+        color: #555;
+    }
+
+    .finance-summary {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 30px;
+        padding: 0 20px;
+        flex-wrap: wrap;
+    }
+
+    .summary-card {
+        flex: 1;
+        min-width: 200px;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .summary-card.revenue {
+        background: #C1A28E;
+        border-left: 4px solid #28a745;
+    }
+
+    .summary-card.expenses {
+        background: #C1A28E;
+        border-left: 4px solid #dc3545;
+    }
+
+    .summary-card.profit {
+        background: #C1A28E;
+        border-left: 4px solid #007bff;
+    }
+
+    .summary-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #555;
+    }
+
+    .summary-card .amount {
+        background: #C1A28E;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .chart-container {
+        padding: 20px;
+        background-color: #C1A28E;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+
+    .details-container {
+        padding: 20px;
+        background-color: #C1A28E;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .details-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .detail-amount {
+        font-weight: bold;
+        color: #333;
+    }
+
+    .no-records {
+        text-align: center;
+        color: #999;
+        padding: 20px;
+    }
+    .btn-save {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        transition: background 0.3s;
+        min-width: 150px;
+    }
+
+    .btn-save:hover {
+        background: #218838;
+    }
+
+    .btn-save:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
     }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateFilter = document.getElementById('dateFilter');
+        const periodFilter = document.getElementById('periodFilter');
+        const reportTypeFilter = document.getElementById('reportTypeFilter');
+        const chartTypeFilter = document.getElementById('chartTypeFilter');
+
+        const revenueAmount = document.getElementById('revenueAmount');
+        const expensesAmount = document.getElementById('expensesAmount');
+        const profitAmount = document.getElementById('profitAmount');
+        const detailsTitle = document.getElementById('detailsTitle');
+        const detailsList = document.getElementById('detailsList');
+
+        let financeChart = null;
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.addEventListener('click', saveChartAsPNG);
+
+        // Устанавливаем сегодняшнюю дату по умолчанию
+        const today = new Date().toISOString().split('T')[0];
+        dateFilter.value = today;
+
+        // Загружаем данные при загрузке страницы
+        loadFinanceData();
+
+        // Обработчики изменений фильтров
+        dateFilter.addEventListener('change', loadFinanceData);
+        periodFilter.addEventListener('change', loadFinanceData);
+        reportTypeFilter.addEventListener('change', loadFinanceData);
+        chartTypeFilter.addEventListener('change', loadFinanceData);
+
+        function loadFinanceData() {
+            const date = dateFilter.value;
+            const period = periodFilter.value;
+            const reportType = reportTypeFilter.value;
+
+            if (!date) {
+                alert('Пожалуйста, выберите дату');
+                return;
+            }
+
+            // Показываем индикатор загрузки
+            showLoading();
+
+            fetch(`/finance/report?date=${date}&period=${period}&type=${reportType}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка загрузки данных');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    updateSummary(data.summary);
+                    updateChart(data.chartData, reportType, chartTypeFilter.value);
+                    updateDetails(data, reportType);
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Ошибка при загрузке данных: ' + error.message);
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+
+        function updateSummary(summary) {
+            revenueAmount.textContent = formatCurrency(summary.revenue);
+            expensesAmount.textContent = formatCurrency(summary.expenses);
+            profitAmount.textContent = formatCurrency(summary.profit);
+
+            // Подсвечиваем прибыль в зависимости от значения
+            if (summary.profit > 0) {
+                profitAmount.style.color = '#28a745';
+            } else if (summary.profit < 0) {
+                profitAmount.style.color = '#dc3545';
+            } else {
+                profitAmount.style.color = '#6c757d';
+            }
+        }
+
+        function updateChart(chartData, reportType, chartType) {
+        const ctx = document.getElementById('financeChart').getContext('2d');
+
+        // Уничтожаем предыдущий график
+        if (financeChart) {
+            financeChart.destroy();
+        }
+
+        // Если нет данных для графика, показываем сообщение
+        if (!chartData.labels || chartData.labels.length === 0 || !chartData.values) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'center';
+            ctx.fillText('Нет данных для графика', ctx.canvas.width / 2, ctx.canvas.height / 2);
+            return;
+        }
+
+        const colors = {
+            revenue: 'rgba(40, 167, 69, 0.8)',
+            expenses: 'rgba(220, 53, 69, 0.8)',
+            profit: 'rgba(0, 123, 255, 0.8)'
+        };
+
+        const borderColors = {
+            revenue: 'rgb(40, 167, 69)',
+            expenses: 'rgb(220, 53, 69)',
+            profit: 'rgb(0, 123, 255)'
+        };
+
+        const labels = {
+            revenue: 'Выручка',
+            expenses: 'Расходы',
+            profit: 'Прибыль'
+        };
+
+        // Для графика прибыли добавляем линию нуля
+        const plugins = reportType === 'profit' ? {
+            annotation: {
+                annotations: {
+                    line1: {
+                        type: 'line',
+                        yMin: 0,
+                        yMax: 0,
+                        borderColor: 'rgb(255, 0, 0)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                    }
+                }
+            }
+        } : {};
+
+        const config = {
+            type: getChartType(chartType),
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: labels[reportType],
+                    data: chartData.values,
+                    backgroundColor: colors[reportType],
+                    borderColor: borderColors[reportType],
+                    borderWidth: 2,
+                    fill: chartType === 'graph' && reportType !== 'profit',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `${labels[reportType]} за выбранный период`,
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        display: chartType !== 'graph'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${labels[reportType]}: ${formatCurrency(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: reportType !== 'profit',
+                        ticks: {
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        financeChart = new Chart(ctx, config);
+
+        // Принудительно обновляем размер графика
+        setTimeout(() => {
+            financeChart.resize();
+        }, 100);
+    }
+
+        function getChartType(chartType) {
+            switch(chartType) {
+                case 'chart': return 'bar';
+                case 'histogram': return 'bar';
+                case 'graph': return 'line';
+                default: return 'bar';
+            }
+        }
+
+        function updateDetails(data, reportType) {
+            if (reportType === 'revenue') {
+                updateRevenueDetails(data.records);
+            } else if (reportType === 'expenses') {
+                updateExpensesDetails(data.expenses);
+            } else if (reportType === 'profit') {
+                updateProfitDetails(data);
+            }
+        }
+
+        function updateRevenueDetails(records) {
+            detailsTitle.textContent = 'Детализация выручки';
+
+            if (!records || records.length === 0) {
+                detailsList.innerHTML = '<div class="no-records">Нет данных о выручке за выбранный период</div>';
+                return;
+            }
+
+            let html = '';
+            records.forEach(record => {
+                html += `
+                    <div class="detail-item">
+                        <div class="detail-info">
+                            <strong>${record.service_name}</strong>
+                            <div>Клиент: ${record.client_name}</div>
+                            <div>Дата: ${formatDate(record.date)}</div>
+                        </div>
+                        <div class="detail-amount">${formatCurrency(record.price)}</div>
+                    </div>
+                `;
+            });
+            detailsList.innerHTML = html;
+        }
+
+        function updateExpensesDetails(expenses) {
+        detailsTitle.textContent = 'Детализация расходов';
+
+        if (!expenses || expenses.length === 0) {
+            detailsList.innerHTML = '<div class="no-records">Нет данных о расходах за выбранный период</div>';
+            return;
+        }
+
+        let html = '';
+        let totalExpenses = 0;
+
+        expenses.forEach(expense => {
+            totalExpenses += expense.total_cost;
+            html += `
+                <div class="detail-item">
+                    <div class="detail-info">
+                        <strong>${expense.service_name}</strong>
+                        <div>Материал: ${expense.material_name}</div>
+                        <div>Расход на 1 услугу: ${expense.consumption_per_service} ${expense.unit}</div>
+                        <div>Кол-во услуг: ${expense.services_count}</div>
+                        <div>Общий расход: ${expense.total_consumption} ${expense.unit}</div>
+                    </div>
+                    <div class="detail-amount">
+                        <div>${formatCurrency(expense.cost_per_service)}/услугу</div>
+                        <div><strong>${formatCurrency(expense.total_cost)}</strong></div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Добавляем итоговую строку
+        html += `
+            <div class="detail-item" style="background: #f8f9fa; border-top: 2px solid #ddd;">
+                <div class="detail-info">
+                    <strong>Общие расходы</strong>
+                </div>
+                <div class="detail-amount">
+                    <strong>${formatCurrency(totalExpenses)}</strong>
+                </div>
+            </div>
+        `;
+
+        detailsList.innerHTML = html;
+    }
+
+        function updateProfitDetails(data) {
+            detailsTitle.textContent = 'Детализация прибыли';
+
+            const profitData = [
+                { label: 'Общая выручка', amount: data.summary.revenue },
+                { label: 'Общие расходы', amount: -data.summary.expenses },
+                { label: 'Чистая прибыль', amount: data.summary.profit }
+            ];
+
+            let html = '';
+            profitData.forEach(item => {
+                const isNegative = item.amount < 0;
+                const amountClass = isNegative ? 'style="color: #dc3545;"' : 'style="color: #28a745;"';
+
+                html += `
+                    <div class="detail-item">
+                        <div class="detail-info">
+                            <strong>${item.label}</strong>
+                        </div>
+                        <div class="detail-amount" ${amountClass}>
+                            ${isNegative ? '-' : ''}${formatCurrency(Math.abs(item.amount))}
+                        </div>
+                    </div>
+                `;
+            });
+            detailsList.innerHTML = html;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'RUB',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Не указана';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showLoading() {
+            // Можно добавить индикатор загрузки
+            detailsList.innerHTML = '<div class="no-records">Загрузка...</div>';
+        }
+
+        function hideLoading() {
+            // Скрыть индикатор загрузки
+        }
+        function saveChartAsPNG() {
+        if (!financeChart) {
+            alert('Нет данных для сохранения');
+            return;
+        }
+
+        // Показываем индикатор загрузки
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Сохранение...';
+
+        // Получаем canvas
+        const canvas = document.getElementById('financeChart');
+
+        // Создаем временную ссылку для скачивания
+        const link = document.createElement('a');
+
+        // Устанавливаем качество изображения (можно увеличить масштаб для лучшего качества)
+        const scale = 2; // Увеличиваем в 2 раза для лучшего качества
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+
+        tempCanvas.width = canvas.width * scale;
+        tempCanvas.height = canvas.height * scale;
+
+        // Увеличиваем разрешение
+        tempCtx.scale(scale, scale);
+        tempCtx.drawImage(canvas, 0, 0);
+
+        // Конвертируем в data URL
+        link.download = generateFileName();
+        link.href = tempCanvas.toDataURL('image/png');
+
+        // Программно кликаем по ссылке для скачивания
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Возвращаем кнопку в исходное состояние
+        setTimeout(() => {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Сохранить как PNG';
+            alert('График успешно сохранен!');
+        }, 500);
+    }
+
+    function generateFileName() {
+        const date = dateFilter.value;
+        const period = periodFilter.value;
+        const reportType = reportTypeFilter.value;
+        const chartType = chartTypeFilter.value;
+
+        const reportTypeLabels = {
+            'revenue': 'выручка',
+            'expenses': 'расходы',
+            'profit': 'прибыль'
+        };
+
+        const periodLabels = {
+            'day': 'день',
+            'month': 'месяц',
+            'year': 'год'
+        };
+
+        const chartTypeLabels = {
+            'graph': 'график',
+            'chart': 'диаграмма',
+            'histogram': 'гистограмма'
+        };
+
+        const filename = `финансы_${reportTypeLabels[reportType]}_${periodLabels[period]}_${date}_${chartTypeLabels[chartType]}.png`;
+
+        return filename;
+    }
+    });
+</script>
 {% endblock %}

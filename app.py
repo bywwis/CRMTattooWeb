@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from configdb import Config
 from models_auto import Base, Customers, Services, Supplies, Record, ServicesSupplies
+import datetime
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -335,45 +336,219 @@ def handle_service_supply(service_supply_id):
         return jsonify({'message': 'Расходный материал удален'})
 
 
-# # ========== СЛОЖНЫЕ ЗАПРОСЫ ==========
-# @app.route('/records/details', methods=['GET'])
-# def get_records_details():
-#     records = (db.session.query(Record, Customers, Services)
-#                .join(Customers, Record.id_customers == Customers.ID)
-#                .join(Services, Record.id_services == Services.ID)
-#                .all())
-#
-#     result = []
-#     for record, customer, service in records:
-#         result.append({
-#             'record_id': record.ID,
-#             'date': record.date.isoformat() if record.date else None,
-#             'customer': f"{customer.surname} {customer.name}",
-#             'customer_phone': customer.phone,
-#             'service': service.name,
-#             'service_price': service.price
-#         })
-#
-#     return jsonify(result)
-#
-#
-# @app.route('/services/<int:service_id>/materials', methods=['GET'])
-# def get_service_materials(service_id):
-#     materials = (db.session.query(ServicesSupplies, Supplies)
-#                  .join(Supplies, ServicesSupplies.id_supplies == Supplies.ID)
-#                  .filter(ServicesSupplies.id_services == service_id)
-#                  .all())
-#
-#     result = []
-#     for service_supply, supply in materials:
-#         result.append({
-#             'material_name': supply.name,
-#             'consumption': service_supply.material_consumption,
-#             'units': service_supply.units_measurement,
-#             'material_price': supply.price
-#         })
-#
-#     return jsonify(result)
+# Финансовые отчеты
+@app.route('/finance/report', methods=['GET'])
+def get_finance_report():
+    date_str = request.args.get('date')
+    period = request.args.get('period', 'day')
+    report_type = request.args.get('type', 'revenue')
+
+    if not date_str:
+        return jsonify({'error': 'Дата не указана'}), 400
+
+    try:
+        base_date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({'error': 'Неверный формат даты'}), 400
+
+    # Определяем период для фильтрации
+    if period == 'day':
+        start_date = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = base_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'month':
+        start_date = base_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month = base_date.replace(day=28) + datetime.timedelta(days=4)
+        end_date = next_month - datetime.timedelta(days=next_month.day)
+        end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'year':
+        start_date = base_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        end_date = base_date.replace(month=12, day=31, hour=23, minute=59, second=59, microsecond=999999)
+    else:
+        start_date = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = base_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    response_data = {
+        'summary': {
+            'revenue': 0,
+            'expenses': 0,
+            'profit': 0
+        },
+        'records': [],
+        'expenses': [],
+        'chartData': {
+            'labels': [],
+            'values': []
+        }
+    }
+
+    # Получаем записи за период
+    records = db.session.query(Record, Services, Customers). \
+        join(Services, Record.id_services == Services.ID). \
+        join(Customers, Record.id_customers == Customers.ID). \
+        filter(Record.date >= start_date, Record.date <= end_date).all()
+
+    # Рассчитываем выручку и собираем статистику по услугам
+    total_revenue = 0
+    records_data = []
+    service_stats = {}  # Считаем сколько раз каждая услуга была выполнена
+
+    for record, service, customer in records:
+        service_price = service.price or 0
+        total_revenue += service_price
+
+        # Собираем статистику по услугам
+        if service.ID not in service_stats:
+            service_stats[service.ID] = {
+                'service': service,
+                'count': 0,
+                'total_revenue': 0
+            }
+        service_stats[service.ID]['count'] += 1
+        service_stats[service.ID]['total_revenue'] += service_price
+
+        records_data.append({
+            'date': record.date.isoformat() if record.date else None,
+            'service_name': service.name,
+            'service_id': service.ID,
+            'client_name': f"{customer.surname or ''} {customer.name or ''}".strip(),
+            'price': service_price
+        })
+
+    # Получаем ВСЕ расходные материалы для услуг
+    services_supplies = db.session.query(ServicesSupplies, Services, Supplies). \
+        join(Services, ServicesSupplies.id_services == Services.ID). \
+        join(Supplies, ServicesSupplies.id_supplies == Supplies.ID). \
+        all()
+
+    total_expenses = 0
+    expenses_data = []
+
+    # Рассчитываем расходы с учетом количества выполненных услуг
+    for service_supply, service, supply in services_supplies:
+        # Получаем количество выполненных услуг за период
+        service_count = service_stats.get(service.ID, {}).get('count', 0)
+
+        # Рассчитываем стоимость материалов для ВСЕХ выполненных услуг этого типа
+        material_cost_per_service = (supply.price or 0) * (service_supply.material_consumption or 0)
+        total_material_cost = material_cost_per_service * service_count
+
+        total_expenses += total_material_cost
+
+        if service_count > 0:  # Добавляем только если услуга была выполнена
+            expenses_data.append({
+                'service_name': service.name,
+                'material_name': supply.name,
+                'consumption_per_service': service_supply.material_consumption or 0,
+                'total_consumption': (service_supply.material_consumption or 0) * service_count,
+                'unit': service_supply.units_measurement or 'шт',
+                'cost_per_service': material_cost_per_service,
+                'total_cost': total_material_cost,
+                'services_count': service_count
+            })
+
+    # Заполняем ответ
+    response_data['summary']['revenue'] = total_revenue
+    response_data['summary']['expenses'] = total_expenses
+    response_data['summary']['profit'] = total_revenue - total_expenses
+    response_data['records'] = records_data
+    response_data['expenses'] = expenses_data
+
+    # Генерируем данные для графика
+    chart_labels = []
+    chart_values = []
+
+    if period == 'day':
+        # Для дня - разбиваем по часам
+        for hour in range(0, 24):
+            hour_start = start_date.replace(hour=hour, minute=0, second=0, microsecond=0)
+            hour_end = start_date.replace(hour=hour, minute=59, second=59, microsecond=999999)
+
+            # Выручка по часам
+            hour_records = [r for r in records_data if r['date'] and
+                            hour_start <= datetime.datetime.fromisoformat(r['date'].replace('Z', '+00:00')) <= hour_end]
+            hour_revenue = sum(r['price'] for r in hour_records)
+
+            # Расходы по часам (распределяем пропорционально выручке)
+            if total_revenue > 0:
+                hour_expenses = total_expenses * (hour_revenue / total_revenue)
+            else:
+                hour_expenses = 0
+
+            hour_profit = hour_revenue - hour_expenses
+
+            chart_labels.append(f"{hour:02d}:00")
+
+            if report_type == 'revenue':
+                chart_values.append(hour_revenue)
+            elif report_type == 'expenses':
+                chart_values.append(hour_expenses)
+            else:  # profit
+                chart_values.append(hour_profit)
+
+    elif period == 'month':
+        # Для месяца - разбиваем по дням
+        current_date = start_date
+        while current_date <= end_date:
+            day_records = [r for r in records_data if r['date'] and
+                           datetime.datetime.fromisoformat(
+                               r['date'].replace('Z', '+00:00')).date() == current_date.date()]
+            day_revenue = sum(r['price'] for r in day_records)
+
+            # Расходы по дням (распределяем пропорционально выручке)
+            if total_revenue > 0:
+                day_expenses = total_expenses * (day_revenue / total_revenue)
+            else:
+                day_expenses = 0
+
+            day_profit = day_revenue - day_expenses
+
+            chart_labels.append(current_date.strftime('%d.%m'))
+
+            if report_type == 'revenue':
+                chart_values.append(day_revenue)
+            elif report_type == 'expenses':
+                chart_values.append(day_expenses)
+            else:  # profit
+                chart_values.append(day_profit)
+
+            current_date += datetime.timedelta(days=1)
+
+    elif period == 'year':
+        # Для года - разбиваем по месяцам
+        for month in range(1, 13):
+            month_date = base_date.replace(month=month, day=1)
+            next_month = month_date.replace(day=28) + datetime.timedelta(days=4)
+            month_end = next_month - datetime.timedelta(days=next_month.day)
+            month_end = month_end.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+            month_records = [r for r in records_data if r['date'] and
+                             month_date <= datetime.datetime.fromisoformat(
+                r['date'].replace('Z', '+00:00')) <= month_end]
+            month_revenue = sum(r['price'] for r in month_records)
+
+            # Расходы по месяцам (распределяем пропорционально выручке)
+            if total_revenue > 0:
+                month_expenses = total_expenses * (month_revenue / total_revenue)
+            else:
+                month_expenses = 0
+
+            month_profit = month_revenue - month_expenses
+
+            chart_labels.append(month_date.strftime('%B'))
+
+            if report_type == 'revenue':
+                chart_values.append(month_revenue)
+            elif report_type == 'expenses':
+                chart_values.append(month_expenses)
+            else:  # profit
+                chart_values.append(month_profit)
+
+    response_data['chartData'] = {
+        'labels': chart_labels,
+        'values': chart_values
+    }
+
+    return jsonify(response_data)
 
 
 if __name__ == '__main__':
