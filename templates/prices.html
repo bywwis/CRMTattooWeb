@@ -132,9 +132,6 @@
                     // Обновляем заголовок
                     modalTitle.textContent = 'Редактирование услуги';
 
-                    // Показываем кнопку удаления
-                    deleteBtn.style.display = 'block';
-
                     // Открываем модальное окно
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
@@ -149,7 +146,6 @@
         function openCreateModal() {
             currentServiceId = null;
             modalTitle.textContent = 'Новая услуга';
-            deleteBtn.style.display = 'none';
 
             // Очищаем форму
             serviceIdInput.value = '';
@@ -247,7 +243,7 @@
         // Удаление услуги
         deleteBtn.addEventListener('click', function() {
             if (!currentServiceId) {
-                alert('Нет услуги для удаления');
+                closeModal();
                 return;
             }
 

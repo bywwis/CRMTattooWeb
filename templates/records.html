@@ -78,15 +78,6 @@
         margin: 0 4% 0 auto;
         padding: 20px;
     }
-
-    .record-card {
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .record-card:hover {
-        background-color: #f5f5f5;
-    }
 </style>
 
 <script>
@@ -335,8 +326,6 @@
                     // Обновляем заголовок модального окна
                     modalTitle.textContent = 'Редактирование записи';
 
-                    // Показываем кнопку удаления
-                    deleteBtn.style.display = 'block';
 
                     // Открываем модальное окно
                     modal.style.display = 'block';
@@ -352,7 +341,6 @@
         function openCreateModal() {
             currentRecordId = null;
             modalTitle.textContent = 'Новая запись';
-            deleteBtn.style.display = 'none';
 
             // Очищаем форму
             recordIdInput.value = '';
@@ -520,7 +508,7 @@
         // Удаление записи
         deleteBtn.addEventListener('click', function() {
             if (!currentRecordId) {
-                alert('Нет записи для удаления');
+                closeModal();
                 return;
             }
 

@@ -73,15 +73,6 @@
         margin: 0 4% 0 auto;
         padding: 20px;
     }
-
-    .record-card {
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .record-card:hover {
-        background-color: #f5f5f5;
-    }
 </style>
 
 <script>
@@ -317,9 +308,6 @@
                     // Обновляем заголовок
                     modalTitle.textContent = 'Редактирование клиента';
 
-                    // Показываем кнопку удаления
-                    deleteBtn.style.display = 'block';
-
                     // Открываем модальное окно
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
@@ -334,7 +322,6 @@
         function openCreateModal() {
             currentClientId = null;
             modalTitle.textContent = 'Новый клиент';
-            deleteBtn.style.display = 'none';
 
             // Очищаем форму
             clientIdInput.value = '';
@@ -441,7 +428,7 @@
         // Удаление клиента
         deleteBtn.addEventListener('click', function() {
             if (!currentClientId) {
-                alert('Нет клиента для удаления');
+                closeModal();
                 return;
             }
 
@@ -489,6 +476,7 @@
             }
         });
 
+        //Инициализация
         loadClients();
     });
 </script>
