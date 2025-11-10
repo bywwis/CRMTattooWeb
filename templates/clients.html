@@ -53,7 +53,7 @@
 
              <div class="form-group">
                 <label for="clientTelephone">Тел.</label>
-                <input type="text" id="clientTelephone">
+                <input type="text" id="clientTelephone" placeholder="+7 (___) ___-__-__">
             </div>
 
             <div class="form-buttons">
@@ -73,6 +73,12 @@
         margin: 0 4% 0 auto;
         padding: 20px;
     }
+
+    /* Стиль для плейсхолдера */
+    #clientTelephone::placeholder {
+        color: #999;
+        opacity: 1;
+    }
 </style>
 
 <script>
@@ -91,6 +97,108 @@
         let currentClientId = null;
         let allClients = []; // Все загруженные клиенты с датами записей
 
+        // Функция для применения маски телефона
+        function formatPhoneNumber(input) {
+            const cursorPosition = input.selectionStart;
+            let value = input.value.replace(/\D/g, '');
+
+            // Если поле пустое, показываем начальную маску
+            if (value.length === 0) {
+                input.value = '+7 (';
+                input.setSelectionRange(4, 4);
+                return;
+            }
+
+            // Убираем код страны если он уже есть
+            if (value.startsWith('7') && value.length > 10) {
+                value = value.substring(1);
+            } else if (value.startsWith('8') && value.length > 10) {
+                value = value.substring(1);
+            }
+
+            let formattedValue = '+7 (';
+
+            if (value.length > 0) {
+                formattedValue += value.substring(0, 3);
+            }
+            if (value.length > 3) {
+                formattedValue += ') ' + value.substring(3, 6);
+            }
+            if (value.length > 6) {
+                formattedValue += '-' + value.substring(6, 8);
+            }
+            if (value.length > 8) {
+                formattedValue += '-' + value.substring(8, 10);
+            }
+
+            input.value = formattedValue;
+
+            // Автоматически перемещаем курсор в нужное место
+            let newCursorPosition;
+            if (value.length <= 3) {
+                newCursorPosition = 4 + value.length;
+            } else if (value.length <= 6) {
+                newCursorPosition = 9 + (value.length - 3);
+            } else if (value.length <= 8) {
+                newCursorPosition = 13 + (value.length - 6);
+            } else {
+                newCursorPosition = 16 + (value.length - 8);
+            }
+
+            input.setSelectionRange(newCursorPosition, newCursorPosition);
+        }
+
+        // Функция для установки начальной маски
+        function setInitialPhoneMask(input) {
+            input.value = '+7 (';
+            input.setSelectionRange(4, 4);
+        }
+
+        // Функция для валидации телефона при сохранении (только цифры)
+        function validatePhoneForSave(phone) {
+            const digitsOnly = phone.replace(/\D/g, '');
+            return digitsOnly.length >= 10 && /^\d+$/.test(digitsOnly);
+        }
+
+        // Функция для получения только цифр из телефона
+        function getPhoneDigits(phone) {
+            return phone.replace(/\D/g, '');
+        }
+
+        // Обработчик ввода для поля телефона
+        telephoneInput.addEventListener('input', function() {
+            formatPhoneNumber(this);
+        });
+
+        // Обработчик для удаления символов (Backspace, Delete)
+        telephoneInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace') {
+                const value = this.value.replace(/\D/g, '');
+                // Если после удаления останутся только начальные символы, сбрасываем к начальной маске
+                if (value.length <= 0) {
+                    setTimeout(() => {
+                        setInitialPhoneMask(this);
+                    }, 0);
+                }
+            }
+        });
+
+        // Обработчик клика по полю - устанавливаем курсор в правильное место
+        telephoneInput.addEventListener('click', function() {
+            const value = this.value.replace(/\D/g, '');
+            if (value.length === 0) {
+                setInitialPhoneMask(this);
+            }
+        });
+
+        // Обработчик фокуса - устанавливаем начальную маску если поле пустое
+        telephoneInput.addEventListener('focus', function() {
+            const value = this.value.replace(/\D/g, '');
+            if (value.length === 0) {
+                setInitialPhoneMask(this);
+            }
+        });
+
         // Функция для загрузки клиентов с сервера вместе с их записями
         function loadClients() {
             Promise.all([
@@ -101,10 +209,10 @@
                 // Обогащаем клиентов данными о всех записях
                 const clientsWithRecords = customers.map(customer => {
                     // Находим все записи этого клиента
-                    const clientRecords = records.filter(record => 
+                    const clientRecords = records.filter(record =>
                         record.id_customers === customer.ID
                     );
-                    
+
                     return {
                         ...customer,
                         records: clientRecords,
@@ -118,11 +226,11 @@
                     if (a.has_records && !b.has_records) return -1;
                     if (!a.has_records && b.has_records) return 1;
                     if (!a.has_records && !b.has_records) return 0;
-                    
+
                     // Сортируем по самой последней записи среди всех записей клиента
                     const aLatestRecord = getLatestRecordDate(a.records);
                     const bLatestRecord = getLatestRecordDate(b.records);
-                    
+
                     return new Date(bLatestRecord) - new Date(aLatestRecord);
                 });
 
@@ -138,11 +246,11 @@
         // Функция для получения самой последней даты записи из всех записей клиента
         function getLatestRecordDate(records) {
             if (!records || records.length === 0) return null;
-            
+
             const sortedRecords = records
                 .filter(record => record.date)
                 .sort((a, b) => new Date(b.date) - new Date(a.date));
-            
+
             return sortedRecords.length > 0 ? sortedRecords[0].date : null;
         }
 
@@ -157,10 +265,10 @@
                 // Проверяем, есть ли у клиента записи на выбранную дату
                 return client.records.some(record => {
                     if (!record.date) return false;
-                    
+
                     const recordDate = new Date(record.date);
                     const filterDate = new Date(selectedDate);
-                    
+
                     return recordDate.toDateString() === filterDate.toDateString();
                 });
             });
@@ -180,16 +288,16 @@
                 // Проверяем, есть ли у клиента записи за выбранный период от выбранной даты
                 return client.records.some(record => {
                     if (!record.date) return false;
-                    
+
                     const recordDate = new Date(record.date);
-                    
+
                     switch(period) {
                         case 'day':
                             // Все записи за тот же день, что и выбранная дата
                             return recordDate.toDateString() === baseDate.toDateString();
                         case 'month':
                             // Все записи за тот же месяц и год, что и выбранная дата
-                            return recordDate.getMonth() === baseDate.getMonth() && 
+                            return recordDate.getMonth() === baseDate.getMonth() &&
                                    recordDate.getFullYear() === baseDate.getFullYear();
                         case 'year':
                             // Все записи за тот же год, что и выбранная дата
@@ -207,7 +315,7 @@
         dateFilter.addEventListener('change', function() {
             const selectedDate = this.value;
             const selectedPeriod = periodFilter.value;
-            
+
             if (selectedPeriod && selectedDate) {
                 // Если выбран и период и дата - фильтруем по периоду от выбранной даты
                 filterClientsByPeriod(selectedPeriod, selectedDate);
@@ -224,7 +332,7 @@
         periodFilter.addEventListener('change', function() {
             const selectedPeriod = this.value;
             const selectedDate = dateFilter.value;
-            
+
             if (selectedPeriod && selectedDate) {
                 // Если выбран и период и дата - фильтруем по периоду от выбранной даты
                 filterClientsByPeriod(selectedPeriod, selectedDate);
@@ -253,6 +361,22 @@
             let html = '';
 
             customers.forEach((customer, index) => {
+                // Форматируем телефон для отображения в списке - ИСПРАВЛЕННАЯ ЛОГИКА
+                let displayPhone = customer.phone || '';
+                if (displayPhone && displayPhone.length >= 10) {
+                    const digits = displayPhone.replace(/\D/g, '');
+                    if (digits.length >= 10) {
+                        // Убираем код страны для форматирования
+                        let cleanDigits = digits;
+                        if (cleanDigits.startsWith('7') && cleanDigits.length >= 11) {
+                            cleanDigits = cleanDigits.substring(1);
+                        } else if (cleanDigits.startsWith('8') && cleanDigits.length >= 11) {
+                            cleanDigits = cleanDigits.substring(1);
+                        }
+                        displayPhone = formatPhoneFromDigits(cleanDigits);
+                    }
+                }
+
                 html += `
                     <div class="record-card" data-client-id="${customer.ID}">
                         <div class="record-content">
@@ -261,7 +385,7 @@
                                 <div class="record-name">${customer.name || ''}</div>
                                 <div class="record-last">${customer.surname || ''}</div>
                                 <div class="record-middle">${customer.patronymic || ''}</div>
-                                <div class="record-telephone">${customer.phone || ''}</div>
+                                <div class="record-telephone">${displayPhone}</div>
                             </div>
                         </div>
                     </div>
@@ -287,6 +411,7 @@
         }
 
         // Функция для открытия модального окна в режиме редактирования
+        // Функция для открытия модального окна в режиме редактирования
         function openEditModal(clientId) {
             currentClientId = clientId;
 
@@ -303,7 +428,25 @@
                     document.getElementById('clientName').value = client.name || '';
                     document.getElementById('clientLast').value = client.surname || '';
                     document.getElementById('clientMiddle').value = client.patronymic || '';
-                    document.getElementById('clientTelephone').value = client.phone || '';
+
+                    // Применяем маску к телефону - ИСПРАВЛЕННАЯ ЛОГИКА
+                    const phoneInput = document.getElementById('clientTelephone');
+                    if (client.phone && client.phone.length >= 10) {
+                        const digits = client.phone.replace(/\D/g, '');
+
+                        // Убираем первую 7 если она есть (так как в маске она уже есть)
+                        let cleanDigits = digits;
+                        if (cleanDigits.startsWith('7') && cleanDigits.length >= 11) {
+                            cleanDigits = cleanDigits.substring(1);
+                        } else if (cleanDigits.startsWith('8') && cleanDigits.length >= 11) {
+                            cleanDigits = cleanDigits.substring(1);
+                        }
+
+                        // Применяем маску
+                        phoneInput.value = formatPhoneFromDigits(cleanDigits);
+                    } else {
+                        setInitialPhoneMask(phoneInput);
+                    }
 
                     // Обновляем заголовок
                     modalTitle.textContent = 'Редактирование клиента';
@@ -318,6 +461,28 @@
                 });
         }
 
+        // Новая функция для форматирования телефона из цифр без дублирования +7
+        function formatPhoneFromDigits(digits) {
+            if (!digits || digits.length < 10) return '+7 (';
+
+            let formattedValue = '+7 (';
+
+            if (digits.length > 0) {
+                formattedValue += digits.substring(0, 3);
+            }
+            if (digits.length > 3) {
+                formattedValue += ') ' + digits.substring(3, 6);
+            }
+            if (digits.length > 6) {
+                formattedValue += '-' + digits.substring(6, 8);
+            }
+            if (digits.length > 8) {
+                formattedValue += '-' + digits.substring(8, 10);
+            }
+
+            return formattedValue;
+        }
+
         // Функция для открытия модального окна в режиме создания
         function openCreateModal() {
             currentClientId = null;
@@ -328,25 +493,14 @@
             document.getElementById('clientName').value = '';
             document.getElementById('clientLast').value = '';
             document.getElementById('clientMiddle').value = '';
-            document.getElementById('clientTelephone').value = '';
+
+            // Устанавливаем начальную маску для телефона
+            setInitialPhoneMask(telephoneInput);
 
             // Открываем модальное окно
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
-
-        // Функция для валидации телефона (только цифры)
-        function validatePhone(input) {
-            const cursorPosition = input.selectionStart;
-            const newValue = input.value.replace(/[^\d]/g, '');
-            input.value = newValue;
-            input.setSelectionRange(cursorPosition, cursorPosition);
-        }
-
-        // Обработчик ввода для поля телефона
-        telephoneInput.addEventListener('input', function() {
-            validatePhone(this);
-        });
 
         // Функция для закрытия модального окна
         function closeModal() {
@@ -365,18 +519,21 @@
             const patronymic = document.getElementById('clientMiddle').value;
             const phone = document.getElementById('clientTelephone').value;
 
+            // Получаем только цифры из телефона для валидации
+            const phoneDigits = getPhoneDigits(phone);
+
             // Проверяем обязательные поля
-            if (!surname || !name || !phone) {
+            if (!surname || !name || !phoneDigits) {
                 alert('Заполните фамилию, имя и телефон!');
                 return;
             }
 
-            if (!/^\d+$/.test(phone)) {
+            if (!/^\d+$/.test(phoneDigits)) {
                 alert('Телефон должен содержать только цифры!');
                 return;
             }
 
-            if (phone.length < 10) {
+            if (phoneDigits.length < 10) {
                 alert('Телефон должен содержать не менее 10 цифр!');
                 return;
             }
@@ -385,7 +542,7 @@
                 surname: surname,
                 name: name,
                 patronymic: patronymic,
-                phone: phone
+                phone: phoneDigits // Сохраняем только цифры
             };
 
             let url = '/customers';

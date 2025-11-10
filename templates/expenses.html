@@ -162,23 +162,43 @@
                     return response.json();
                 })
                 .then(expense => {
-                    // Заполняем форму данными
-                    expenseIdInput.value = expense.ID;
-                    serviceSelect.value = expense.id_services;
-                    materialSelect.value = expense.id_supplies;
-                    document.getElementById('quantity').value = expense.material_consumption;
-                    unitSelect.value = expense.units_measurement;
+                    // Сохраняем данные для установки после загрузки списков
+                    const expenseData = {
+                        id: expense.ID,
+                        serviceId: expense.id_services,
+                        materialId: expense.id_supplies,
+                        quantity: expense.material_consumption,
+                        unit: expense.units_measurement
+                    };
 
                     // Обновляем заголовок
                     modalTitle.textContent = 'Редактирование расхода';
 
-                    // Загружаем списки и открываем модальное окно
-                    loadServices();
-                    loadMaterials();
-                    loadUnits();
+                    // Загружаем списки и устанавливаем значения
+                    Promise.all([
+                        loadServices().then(() => {
+                            if (expenseData.serviceId) {
+                                serviceSelect.value = expenseData.serviceId;
+                            }
+                        }),
+                        loadMaterials().then(() => {
+                            if (expenseData.materialId) {
+                                materialSelect.value = expenseData.materialId;
+                            }
+                        }),
+                        loadUnits().then(() => {
+                            if (expenseData.unit) {
+                                unitSelect.value = expenseData.unit;
+                            }
+                        })
+                    ]).then(() => {
+                        // Устанавливаем остальные значения после загрузки всех списков
+                        expenseIdInput.value = expenseData.id;
+                        document.getElementById('quantity').value = expenseData.quantity;
 
-                    modal.style.display = 'block';
-                    document.body.style.overflow = 'hidden';
+                        modal.style.display = 'block';
+                        document.body.style.overflow = 'hidden';
+                    });
                 })
                 .catch(error => {
                     console.error('Ошибка при загрузке расходного материала:', error);
@@ -214,7 +234,7 @@
 
         // Функция для загрузки услуг из БД
         function loadServices() {
-            fetch('/services')
+            return fetch('/services')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Ошибка загрузки услуг');
@@ -239,7 +259,7 @@
 
         // Функция для загрузки материалов из БД
         function loadMaterials() {
-            fetch('/supplies')
+            return fetch('/supplies')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Ошибка загрузки материалов');
@@ -264,13 +284,17 @@
 
         // Функция для загрузки единиц измерения (статический список)
         function loadUnits() {
-            unitSelect.innerHTML = '<option value="">Выберите единицу измерения</option>';
+            return new Promise((resolve) => {
+                unitSelect.innerHTML = '<option value="">Выберите единицу измерения</option>';
 
-            units.forEach(unit => {
-                const option = document.createElement('option');
-                option.value = unit;
-                option.textContent = unit;
-                unitSelect.appendChild(option);
+                units.forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit;
+                    option.textContent = unit;
+                    unitSelect.appendChild(option);
+                });
+
+                resolve();
             });
         }
 

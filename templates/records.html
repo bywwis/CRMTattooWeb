@@ -102,6 +102,24 @@
         let currentRecordId = null; // ID текущей редактируемой записи
         let allRecords = []; // Все загруженные записи
 
+        // Функция для форматирования телефона в маску
+        function formatPhoneNumber(phone) {
+            if (!phone) return '';
+
+            const digits = phone.replace(/\D/g, '');
+            if (digits.length < 10) return phone;
+
+            // Убираем код страны если он уже есть
+            let cleanDigits = digits;
+            if (cleanDigits.startsWith('7') && cleanDigits.length >= 11) {
+                cleanDigits = cleanDigits.substring(1);
+            } else if (cleanDigits.startsWith('8') && cleanDigits.length >= 11) {
+                cleanDigits = cleanDigits.substring(1);
+            }
+
+            return `+7 (${cleanDigits.substring(0, 3)}) ${cleanDigits.substring(3, 6)}-${cleanDigits.substring(6, 8)}-${cleanDigits.substring(8, 10)}`;
+        }
+
         function loadRecords() {
             // Загрузка всех необходимых данных параллельно
             Promise.all([
@@ -219,7 +237,10 @@
         // Функция для получения данных клиента по ID
         function getCustomerName(customerId) {
             const customer = customersData.find(c => c.ID === customerId);
-            return customer ? `${customer.name} ${customer.phone}` : `Клиент #${customerId}`;
+            if (!customer) return `Клиент #${customerId}`;
+
+            const formattedPhone = formatPhoneNumber(customer.phone);
+            return `${customer.name} ${formattedPhone}`;
         }
 
         // Функция для получения названия услуги по ID
@@ -325,7 +346,6 @@
 
                     // Обновляем заголовок модального окна
                     modalTitle.textContent = 'Редактирование записи';
-
 
                     // Открываем модальное окно
                     modal.style.display = 'block';
@@ -433,7 +453,9 @@
                     customers.forEach(customer => {
                         const option = document.createElement('option');
                         option.value = customer.ID; // ID клиента
-                        option.textContent = `${customer.name} ${customer.phone || ''}`;
+                        // Форматируем телефон для отображения в выпадающем списке
+                        const formattedPhone = formatPhoneNumber(customer.phone);
+                        option.textContent = `${customer.name} ${formattedPhone}`;
                         clientSelect.appendChild(option);
                     });
                 })
