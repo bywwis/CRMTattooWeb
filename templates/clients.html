@@ -38,17 +38,17 @@
 
             <div class="form-group">
                 <label for="clientName">Имя</label>
-                <input type="text" id="clientName">
+                <input type="text" id="clientName" maxlength="50" pattern="[A-Za-zА-Яа-яЁё\s]+">
             </div>
 
             <div class="form-group">
                 <label for="clientLast">Фамилия</label>
-                <input type="text" id="clientLast">
+                <input type="text" id="clientLast" maxlength="50" pattern="[A-Za-zА-Яа-яЁё\s]+">
             </div>
 
             <div class="form-group">
                 <label for="clientMiddle">Отчество</label>
-                <input type="text" id="clientMiddle">
+                <input type="text" id="clientMiddle" maxlength="50" pattern="[A-Za-zА-Яа-яЁё\s]+">
             </div>
 
              <div class="form-group">
@@ -96,6 +96,52 @@
 
         let currentClientId = null;
         let allClients = []; // Все загруженные клиенты с датами записей
+
+        // Получаем ссылки на поля ввода
+        const nameInput = document.getElementById('clientName');
+        const lastNameInput = document.getElementById('clientLast');
+        const middleNameInput = document.getElementById('clientMiddle');
+
+        // Функция для валидации ввода (только буквы и пробелы)
+        function validateTextInput(input) {
+            // Разрешаем только буквы русского/английского алфавита и пробелы
+            input.value = input.value.replace(/[^A-Za-zА-Яа-яЁё\s]/g, '');
+
+            // Убираем множественные пробелы
+            input.value = input.value.replace(/\s+/g, ' ');
+
+            // Убираем пробелы в начале и конце
+            input.value = input.value.trim();
+        }
+
+        // Функция для проверки нажатия клавиш (опционально)
+        function allowOnlyLetters(e) {
+            const key = e.key;
+            // Разрешаем: буквы, пробел, Backspace, Delete, Tab, стрелки
+            if (!/^[A-Za-zА-Яа-яЁё\s]$/.test(key) &&
+                !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
+                e.preventDefault();
+            }
+        }
+
+        // Добавляем обработчики событий для каждого поля
+        [nameInput, lastNameInput, middleNameInput].forEach(input => {
+            // Обработчик ввода
+            input.addEventListener('input', function() {
+                validateTextInput(this);
+            });
+
+            // Обработчик вставки (paste)
+            input.addEventListener('paste', function(e) {
+                // Даем время на вставку, затем валидируем
+                setTimeout(() => {
+                    validateTextInput(this);
+                }, 0);
+            });
+
+            // Обработчик нажатия клавиш (опционально)
+            input.addEventListener('keydown', allowOnlyLetters);
+        });
 
         // Функция для применения маски телефона
         function formatPhoneNumber(input) {
