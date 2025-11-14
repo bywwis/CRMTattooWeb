@@ -147,23 +147,28 @@
         function formatPhoneNumber(input) {
             const cursorPosition = input.selectionStart;
             let value = input.value.replace(/\D/g, '');
-
-            // Если поле пустое, показываем начальную маску
-            if (value.length === 0) {
+            
+            // Сохраняем позицию курсора относительно цифр
+            let digitsBeforeCursor = input.value.substring(0, cursorPosition).replace(/\D/g, '').length;
+            
+            // Если поле пустое или содержит только начальные символы, показываем начальную маску
+            if (value.length === 0 || (value.length === 0 && input.value.includes('+7 ('))) {
                 input.value = '+7 (';
                 input.setSelectionRange(4, 4);
                 return;
             }
-
-            // Убираем код страны если он уже есть
-            if (value.startsWith('7') && value.length > 10) {
+            
+            // Убираем код страны если он уже есть (7 или 8)
+            if (value.startsWith('7') && value.length > 1) {
                 value = value.substring(1);
-            } else if (value.startsWith('8') && value.length > 10) {
+                digitsBeforeCursor = Math.max(0, digitsBeforeCursor - 1);
+            } else if (value.startsWith('8') && value.length > 1) {
                 value = value.substring(1);
+                digitsBeforeCursor = Math.max(0, digitsBeforeCursor - 1);
             }
-
+            
             let formattedValue = '+7 (';
-
+            
             if (value.length > 0) {
                 formattedValue += value.substring(0, 3);
             }
@@ -176,28 +181,37 @@
             if (value.length > 8) {
                 formattedValue += '-' + value.substring(8, 10);
             }
-
-            input.value = formattedValue;
-
-            // Автоматически перемещаем курсор в нужное место
-            let newCursorPosition;
-            if (value.length <= 3) {
-                newCursorPosition = 4 + value.length;
-            } else if (value.length <= 6) {
-                newCursorPosition = 9 + (value.length - 3);
-            } else if (value.length <= 8) {
-                newCursorPosition = 13 + (value.length - 6);
-            } else {
-                newCursorPosition = 16 + (value.length - 8);
+            
+            // Обновляем значение только если оно действительно изменилось
+            if (input.value !== formattedValue) {
+                input.value = formattedValue;
             }
-
+            
+            // Восстанавливаем позицию курсора
+            let newCursorPosition;
+            if (digitsBeforeCursor <= 0) {
+                newCursorPosition = 4;
+            } else if (digitsBeforeCursor <= 3) {
+                newCursorPosition = 4 + digitsBeforeCursor;
+            } else if (digitsBeforeCursor <= 6) {
+                newCursorPosition = 9 + (digitsBeforeCursor - 3);
+            } else if (digitsBeforeCursor <= 8) {
+                newCursorPosition = 13 + (digitsBeforeCursor - 6);
+            } else {
+                newCursorPosition = 16 + (digitsBeforeCursor - 8);
+            }
+            
+            // Убеждаемся, что позиция курсора не выходит за пределы строки
+            newCursorPosition = Math.min(newCursorPosition, formattedValue.length);
             input.setSelectionRange(newCursorPosition, newCursorPosition);
         }
 
         // Функция для установки начальной маски
         function setInitialPhoneMask(input) {
-            input.value = '+7 (';
-            input.setSelectionRange(4, 4);
+            if (!input.value || input.value === '+7 (' || input.value.replace(/\D/g, '').length === 0) {
+                input.value = '+7 (';
+                input.setSelectionRange(4, 4);
+            }
         }
 
         // Функция для валидации телефона при сохранении (только цифры)
@@ -211,25 +225,41 @@
             return phone.replace(/\D/g, '');
         }
 
-        // Обработчик ввода для поля телефона
-        telephoneInput.addEventListener('input', function() {
-            formatPhoneNumber(this);
+        // Улучшенный обработчик ввода для поля телефона
+        telephoneInput.addEventListener('input', function(e) {
+            // Игнорируем ввод если это не пользовательский ввод (программные изменения)
+            if (e.inputType) {
+                formatPhoneNumber(this);
+            }
         });
 
-        // Обработчик для удаления символов (Backspace, Delete)
+        // Улучшенный обработчик для удаления символов
         telephoneInput.addEventListener('keydown', function(e) {
             if (e.key === 'Backspace') {
                 const value = this.value.replace(/\D/g, '');
+                const cursorPosition = this.selectionStart;
+                
+                // Если курсор находится в начале маски "+7 (", предотвращаем удаление
+                if (cursorPosition <= 4) {
+                    e.preventDefault();
+                    return;
+                }
+                
                 // Если после удаления останутся только начальные символы, сбрасываем к начальной маске
-                if (value.length <= 0) {
+                if (value.length <= 1 && cursorPosition <= 4) {
                     setTimeout(() => {
                         setInitialPhoneMask(this);
                     }, 0);
                 }
             }
+            
+            // Запрещаем ввод нецифровых символов (кроме управляющих клавиш)
+            if (!/[\d]|Backspace|Delete|Tab|ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Home|End/.test(e.key)) {
+                e.preventDefault();
+            }
         });
 
-        // Обработчик клика по полю - устанавливаем курсор в правильное место
+        // Обработчик клика по полю
         telephoneInput.addEventListener('click', function() {
             const value = this.value.replace(/\D/g, '');
             if (value.length === 0) {
@@ -237,11 +267,22 @@
             }
         });
 
-        // Обработчик фокуса - устанавливаем начальную маску если поле пустое
+        // Обработчик фокуса
         telephoneInput.addEventListener('focus', function() {
             const value = this.value.replace(/\D/g, '');
             if (value.length === 0) {
                 setInitialPhoneMask(this);
+            } else {
+                // Устанавливаем курсор в конец числа
+                const formattedLength = this.value.length;
+                this.setSelectionRange(formattedLength, formattedLength);
+            }
+        });
+
+        // Обработчик потери фокуса - очищаем если только маска без цифр
+        telephoneInput.addEventListener('blur', function() {
+            if (this.value === '+7 (') {
+                this.value = '';
             }
         });
 
@@ -507,25 +548,33 @@
                 });
         }
 
-        // Новая функция для форматирования телефона из цифр без дублирования +7
+        // Функция для форматирования телефона из цифр
         function formatPhoneFromDigits(digits) {
             if (!digits || digits.length < 10) return '+7 (';
-
+            
+            // Убираем код страны если он есть
+            let cleanDigits = digits;
+            if (cleanDigits.startsWith('7') && cleanDigits.length >= 11) {
+                cleanDigits = cleanDigits.substring(1);
+            } else if (cleanDigits.startsWith('8') && cleanDigits.length >= 11) {
+                cleanDigits = cleanDigits.substring(1);
+            }
+            
             let formattedValue = '+7 (';
-
-            if (digits.length > 0) {
-                formattedValue += digits.substring(0, 3);
+            
+            if (cleanDigits.length > 0) {
+                formattedValue += cleanDigits.substring(0, 3);
             }
-            if (digits.length > 3) {
-                formattedValue += ') ' + digits.substring(3, 6);
+            if (cleanDigits.length > 3) {
+                formattedValue += ') ' + cleanDigits.substring(3, 6);
             }
-            if (digits.length > 6) {
-                formattedValue += '-' + digits.substring(6, 8);
+            if (cleanDigits.length > 6) {
+                formattedValue += '-' + cleanDigits.substring(6, 8);
             }
-            if (digits.length > 8) {
-                formattedValue += '-' + digits.substring(8, 10);
+            if (cleanDigits.length > 8) {
+                formattedValue += '-' + cleanDigits.substring(8, 10);
             }
-
+            
             return formattedValue;
         }
 
@@ -541,6 +590,7 @@
             document.getElementById('clientMiddle').value = '';
 
             // Устанавливаем начальную маску для телефона
+            telephoneInput.value = '';
             setInitialPhoneMask(telephoneInput);
 
             // Открываем модальное окно
